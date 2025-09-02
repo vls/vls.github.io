@@ -1,0 +1,37 @@
+---
+layout: post
+status: publish
+published: true
+title: Django下解决IE8使用兼容性视图的问题
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40177
+wordpress_url: http://blog.lzhaohao.info/?p=40177
+date: '2011-10-09 16:52:33 +0000'
+date_gmt: '2011-10-09 08:52:33 +0000'
+categories:
+- python
+- web
+tags:
+- python
+- django
+- ie
+- ie8
+- Compatibility view
+comments: []
+---
+<p>IE8及之后的版本为了兼容针对老版本IE而编写的网页，使用了"兼容性视图设置"，并内置了很多模式(Browser Mode)。IE会根据doctype, meta, http response header, IE设置(<a href="http://hsivonen.iki.fi/doctype/">ref1</a>)(<a href="http://hsivonen.iki.fi/doctype/ie8-mode.png">ref2</a>)等来选择一个模式来渲染。</p>
+<p>新写的页面都应该遵循标准且用html5 doctype，这样大多数情况下IE都会使用标准模式来渲染。但这次写的是内部系统，处于Intranet环境下。很多IE的兼容性视图设置都勾选了"在兼容性视图中显示Intranet站点"。当IE勾选了这个选项后，会忽略页面meta标签的指示。是否有一种可控的方法override掉这个设置呢？答案是肯定的。方式就是在HTTP的响应中加入X-UA-Compatible头。</p>
+<p>一般X-UA-Compatible可以在Web Server例如Apache或Nginx中设置，但有可能一个Web Server不同的应用程序需要不同兼容性视图设置。根据实际情况，我选择在Django里加入这个header。</p>
+<p>已经有人<a href="http://sunlightlabs.com/blog/2009/x-ua-compatible-django-middleware/">写好Django的Middleware</a>了，按照其说明安装好Middleware，在IE刷新即可看到结果。</p>
+<p>参考资料：</p>
+<ul>
+<li><a href="http://msdn.microsoft.com/en-us/library/cc288325%28v=vs.85%29.aspx">Defining Document Compatibility</a></li>
+<li><a href="http://hsivonen.iki.fi/doctype/">Activating Browser Modes with Doctype</a></li>
+<li><a href="http://sunlightlabs.com/blog/2009/x-ua-compatible-django-middleware/">X-UA-Compatible Django Middleware</a></li>
+</ul>

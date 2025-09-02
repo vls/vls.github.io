@@ -1,0 +1,79 @@
+---
+layout: post
+status: publish
+published: true
+title: Python循环中的local变量绑定问题
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40326
+wordpress_url: https://blog.lzhaohao.info/?p=40326
+date: '2013-06-24 21:13:52 +0000'
+date_gmt: '2013-06-24 13:13:52 +0000'
+categories:
+- python
+tags:
+- python
+comments:
+- id: 120
+  author: muxueqz
+  author_email: zhangmingyuan240@gmail.com
+  author_url: ''
+  date: '2013-06-27 07:29:00 +0000'
+  date_gmt: '2013-06-26 23:29:00 +0000'
+  content: hi,你的博客RSS貌似有问题哦，http://feedvalidator.org/check.cgi?url=http%3A%2F%2Fblog.lzhaohao.info%2Ffeed%2F
+- id: 121
+  author: ukessi
+  author_email: nobody@gmail.com
+  author_url: ''
+  date: '2013-06-27 09:38:00 +0000'
+  date_gmt: '2013-06-27 01:38:00 +0000'
+  content: 感谢反馈，已修正。
+- id: 122
+  author: muxueqz
+  author_email: zhangmingyuan240@gmail.com
+  author_url: ''
+  date: '2013-06-29 15:26:00 +0000'
+  date_gmt: '2013-06-29 07:26:00 +0000'
+  content: 这才发现我留言了两次。。。现在貌似好了
+---
+<p>考虑以下代码</p>
+<pre><code>#!python
+func_list = []
+
+def foo(d):
+    print 'num', num
+    _num = num
+    return d['level'] > _num
+
+def get_f(num):
+    _num = num
+    def bar(d):
+        print 'num', _num
+        return d['level'] > _num
+    return bar
+
+for num in (30, 60):
+    level_func = foo
+    #level_func = get_f(num)
+    func_list.append(level_func)
+
+
+d = {'level': 40}
+
+for f in func_list:
+    print f(d)
+</code></pre>
+<p>当level_func是foo时，两次调用都会输出num=60，而level_func = get_f(num)，才会输出期望的num=30, num=60。</p>
+<p>原因是循环中level_func都绑定了同一个local变量num，而循环结束后，变量num的值为60，所以输出都是60。而get_f里面定义了_num=num，bar函数的_num是指向get_f里面所定义的_num，这是因为Python里def定义函数创造了一个新的variable scope；循环两次，get_f里形成闭包，保存了循环当时的值。</p>
+<p>但每次都要定义一个辅助函数（上例的get_f）总觉得麻烦，如何解决？其实可以利用Python的一个<a href="https://blog.lzhaohao.info/archive/python-function-default-parameter-value-proble/">&ldquo;坑&rdquo;</a>。<br />
+代码：</p>
+<pre><code>#!python
+level_func = lambda d, num=num: return d['level'] > num
+</code></pre>
+<p>原理就是利用Python函数默认参数是在定义时绑定。</p>
+<p>具体的差别可以用过dis模块来打印函数的bytecode查看。</p>

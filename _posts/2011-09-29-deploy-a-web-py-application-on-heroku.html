@@ -1,0 +1,204 @@
+---
+layout: post
+status: publish
+published: true
+title: 在Heroku上部署web.py应用
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40165
+wordpress_url: http://blog.lzhaohao.info/?p=40165
+date: '2011-09-29 13:33:10 +0000'
+date_gmt: '2011-09-29 05:33:10 +0000'
+categories:
+- python
+- web
+tags:
+- python
+- web
+- heroku
+- web.py
+comments:
+- id: 112
+  author: Ubuntu 10.04 + Heroku + Python | lsharemy
+  author_email: ''
+  author_url: http://lsharemy.com/wordpress/index.php/csit/ubuntu-10-04-heroku-python/
+  date: '2012-06-25 21:22:18 +0000'
+  date_gmt: '2012-06-25 13:22:18 +0000'
+  content: "[...] 后来找到了这篇博客：http://blog.lzhaohao.info/archive/deploy-a-web-py-application-on-heroku/
+    [...]"
+---
+<p>今天<a href="http://www.heroku.com/">Heroku</a>宣布<a href="http://blog.heroku.com/archives/2011/9/28/python_and_django/">支持Python</a>，原本一直眼馋Ruby的同学有Heroku这个云主机平台，终于等到支持Python，立刻尝鲜一把。</p>
+<h1>安装Heroku环境</h1>
+<p>虽然系统是Ubuntu 10.04，但因为不想增加apt-get-repository，我没有使用官方推荐的apt-get方式。采用tarball方式，下载解压运行，提示没有ruby环境，那就安装吧：</p>
+<pre class="brush:bash">
+sudo apt-get install ruby rubygems libreadline-ruby libopenssl-ruby
+</pre>
+<p>然后手动把解压出来的heroku-client文件夹加到PATH路径里。</p>
+<h1>配置Heroku环境</h1>
+<p>此处借用Heroku的文档，配置Heroku登录凭据与公私钥</p>
+<pre class="brush:bash">
+$ heroku login
+Enter your Heroku credentials.
+Email: adam@example.com
+Password: 
+Could not find an existing public key.
+Would you like to generate one? [Yn] 
+Generating new SSH public key.
+Uploading ssh public key /Users/adam/.ssh/id_rsa.pub
+</pre>
+<h1>编写hello world</h1>
+<p>Heroku文档是介绍使用flask这个web框架，由于习惯使用web.py，所以使用web.py来编写hello world。</p>
+<h2>编写pip的requirements.txt</h2>
+<pre class="brush:bash">
+$ echo "web.py==0.36" > requirements.txt
+</pre>
+<p>创建一个<a href="http://pypi.python.org/pypi/virtualenv">virtualenv</a></p>
+<pre class="brush:bash">
+$ virtualenv --no-site-packages .
+New python executable in ./bin/python
+Installing setuptools............done.
+
+$source bin/activate
+</pre>
+<p>然后根据requirements.txt安装环境：</p>
+<pre class="brush:bash">
+$ bin/pip install -r requirements.txt
+Downloading/unpacking web.py==0.36 (from -r requirements.txt (line 1))
+  Downloading web.py-0.36.tar.gz (87Kb): 87Kb downloaded
+  Running setup.py egg_info for package web.py
+Installing collected packages: web.py
+  Running setup.py install for web.py
+Successfully installed web.py
+Cleaning up...
+</pre>
+<p>编写.gitignore，将以下内容写到.gitignore文件里</p>
+<pre class="brush:bash">
+bin
+build
+include
+lib
+.Python
+*.pyc
+</pre>
+<h2>编写web.py程序</h2>
+<p>终于开始写干活的程序，直接上代码：</p>
+<pre class="brush:bash">
+$ vi hello.py
+</pre>
+<pre class="brush:python">
+import web
+import os, sys
+
+urls = (
+    '/(.*)', 'hello'
+)
+
+app = web.application(urls, globals())
+class hello:
+    def GET(self, name):
+        if not name:
+            name = 'World'
+        return 'Hello, ' + name + '!'
+
+if __name__ == "__main__":
+    port = os.environ.get("PORT", "5000")
+    sys.argv[1] = port
+    app.run()
+</pre>
+<p>由于Heroku会提供PORT环境变量来指定应用程序的端口，而web.py默认使用命令行第一个参数作为端口，因此直接获取环境变量PORT，放到sys.argv[1]里，注意web.py从命令行参数读端口参数，端口参数是字符串。</p>
+<h2>使用Foreman作为启动脚本</h2>
+<p>Heroku是ruby系的产品，使用<a href="https://github.com/ddollar/foreman">Foreman</a>作为启动脚本</p>
+<p>使用rubygems即可安装foreman</p>
+<pre class="brush:bash">
+$ gem install foreman
+</pre>
+<blockquote><p>
+在ubuntu 10.04上安装foreman，会遇到错误：</p>
+<pre class="brush:bash">
+ERROR:  Error installing foreman:
+        thor requires RubyGems version >= 1.3.6
+</pre>
+<p>而ubuntu 10.04的默认源里的rubygems是1.3.5的，参考stackoverflow一篇<a href="http://stackoverflow.com/questions/2777831/how-can-i-get-rubygems-1-3-6-on-ubuntu-10-4">文章</a>，找到解决方法：</p>
+<pre class="brush:bash">
+sudo gem install rubygems-update
+cd /var/lib/gems/1.8/bin
+sudo ./update_rubygems
+</pre>
+</blockquote>
+<p>然后编写Procfile，这个Procfile是Foreman所读取的启动项</p>
+<pre class="brush:bash">
+echo "web: python hello.py 5000" > Procfile
+</pre>
+<p>然后就可以启动来看下</p>
+<pre class="brush:bash">
+$ foreman start
+13:20:59 web.1     | started with pid 25656
+13:21:00 web.1     | http://0.0.0.0:5000/
+</pre>
+<p>正常。</p>
+<h1>部署到Heroku</h1>
+<p>Heroku使用git push的部署方式，当代码push到远端，Heroku会自动更新代码并重启应用，使用过git的同学应该不会陌生。</p>
+<pre class="brush:bash">
+$ heroku create --stack cedar
+Creating simple-mountain-9034... done, stack is cedar
+http://simple-mountain-9034.herokuapp.com/ | git@heroku.com:simple-mountain-9034.git
+Git remote heroku added
+</pre>
+<p>然后推送到远端：</p>
+<pre class="brush:bash">
+$ git push heroku master
+Counting objects: 6, done.
+Delta compression using up to 4 threads.
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (6/6), 592 bytes, done.
+Total 6 (delta 0), reused 0 (delta 0)
+
+-----> Heroku receiving push
+-----> Python app detected
+-----> Preparing virtualenv version 1.6.1
+       New python executable in ./bin/python2.7
+       Also creating executable in ./bin/python
+       Installing setuptools............done.
+       Installing pip...............done.
+-----> Installing dependencies using pip version 1.0.1
+       Downloading/unpacking web.py==0.36 (from -r requirements.txt (line 1))
+       Creating supposed download cache at /app/tmp/repo.git/.cache/pip_downloads
+         Storing download in cache at /app/tmp/repo.git/.cache/pip_downloads/http%3A%2F%2Fpypi.python.org%2Fpackages%2Fsource%2Fw%2Fweb.py%2Fweb.py-0.36.tar.gz
+         Running setup.py egg_info for package web.py
+           
+       Installing collected packages: web.py
+         Running setup.py install for web.py
+           
+       Successfully installed web.py
+       Cleaning up...
+-----> Discovering process types
+       Procfile declares types -> web
+-----> Compiled slug size is 2.6MB
+-----> Launching... done, v3
+       http://simple-mountain-9034.herokuapp.com deployed to Heroku
+
+To git@heroku.com:simple-mountain-9034.git
+ * [new branch]      master -> master
+</pre>
+<p>这里注意要修改web的进程数：</p>
+<pre class="brush:bash">
+$ heroku scale web=1
+Scaling web processes... done, now running 1
+</pre>
+<p>然后可以查看进程的状态：</p>
+<pre class="brush:bash">
+$ heroku ps
+Process       State               Command
+------------  ------------------  ------------------------------
+web.1         up for 5s           python hello.py 5000
+</pre>
+<p>访问自己的Heroku应用地址，例如我的是<a href="http://simple-mountain-9034.herokuapp.com/abcdefg">http://simple-mountain-9034.herokuapp.com/abcdefg</a>，成功！</p>
+<p>参考资料：</p>
+<ul>
+<li><a href="http://devcenter.heroku.com/articles/python">Getting Started with Python on Heroku/Cedar</a></li>
+</ul>

@@ -1,0 +1,127 @@
+---
+layout: post
+status: publish
+published: true
+title: Python序列化库效率对比
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40084
+wordpress_url: http://blog.lzhaohao.info/?p=40084
+date: '2011-07-15 09:50:01 +0000'
+date_gmt: '2011-07-15 01:50:01 +0000'
+categories:
+- python
+tags:
+- python
+comments: []
+---
+<p>Python内置marshal, cPickle等序列化库，但cPickle效率不太理想，marshal文档也说不保证版本兼容性。今天在<a href="http://groups.google.com/group/python-cn/browse_frm/thread/16703eb5c44eef26">列表</a>中看到几个第三方库，故自己测试下：</p>
+<p>测试脚本：</p>
+<pre class="brush:python">
+#!/usr/bin/env python
+
+import sys,os,time
+import cPickle
+import marshal
+import shelve
+import tnetstring
+import msgpack
+
+def get_dict():
+    d = {}
+    for i in xrange(500000):
+        d[i] = "abcd" * 10
+
+    return d
+
+import time, functools
+
+def timeit(func):
+    @functools.wraps(func)
+    def __do__(*args,**kwargs):
+        start = time.time()
+        result= func(*args,**kwargs)
+        print '%s used time %ss'%(func.__name__,time.time()-start)
+        return result
+    return __do__
+
+@timeit
+def marshal_dump(d):
+    return marshal.dumps(d)
+
+@timeit
+def marshal_load(s):
+    return marshal.loads(s)
+
+def marshal_test(d):
+    s = marshal_dump(d)
+    marshal_load(s)
+
+@timeit
+def cPickle_dump(d):
+    return cPickle.dumps(d, cPickle.HIGHEST_PROTOCOL)
+@timeit
+def cPickle_load(s):
+    return cPickle.loads(s)
+
+def cPickle_test(d):
+    s = cPickle_dump(d)
+    cPickle_load(s)
+
+@timeit
+def tnetstring_dump(d):
+    return tnetstring.dumps(d)
+
+@timeit
+def tnetstring_load(s):
+    return tnetstring.loads(s)
+
+def tnetstring_test(d):
+    s = tnetstring_dump(d)
+    tnetstring_load(s)
+
+@timeit
+def msgpack_dump(d):
+    return msgpack.packb(d)
+
+@timeit
+def msgpack_load(s):
+    return msgpack.unpackb(s)
+
+def msgpack_test(d):
+    s= msgpack_dump(d)
+    msgpack_load(s)
+
+def main():
+    d = get_dict()
+    marshal_test(d)
+    cPickle_test(d)
+    tnetstring_test(d)
+    msgpack_test(d)
+
+if __name__ == "__main__":
+    main()
+</pre>
+<p>在一台Ubuntu 10.04 32bit，双核Intel(R) Xeon(TM) CPU 3.06GHz机器上，有如下成绩：</p>
+<blockquote><p>
+marshal_dump used time 0.18213891983s<br />
+marshal_load used time 0.335217952728s<br />
+cPickle_dump used time 2.73869895935s<br />
+cPickle_load used time 0.558264017105s<br />
+tnetstring_dump used time 0.622045040131s<br />
+tnetstring_load used time 0.311910152435s<br />
+msgpack_dump used time 1.07127404213s<br />
+msgpack_load used time 0.27454996109s
+</p></blockquote>
+<h1>结论</h1>
+<ul>
+<li>cPickle最慢，基本上可以抛弃</li>
+<li>marshal虽然有不兼容隐患，但如果能保证相同的Python版本，还是可以一用</li>
+<li>tnetstring无论序列化或反序列化速度都比较中庸</li>
+<li>msgpack反序列化最快，如果读多写少的应用场景是最佳选择。而且msgpack支持多语言。</li>
+</ul>

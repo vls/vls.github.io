@@ -1,0 +1,30 @@
+---
+layout: post
+status: publish
+published: true
+title: nvcc in CUDA 3.0 不支持中文路径
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 5
+wordpress_url: "/2010/04/7/nvcc-in-cuda-3.0-dont-support-chinese.html"
+date: '2010-04-07 20:12:00 +0000'
+date_gmt: '2010-04-07 12:12:00 +0000'
+categories:
+- 未分类
+tags: []
+comments: []
+---
+<p>近来发现.cu里面的断点不能命中，初步怀疑是项目属性里面的C/C++->代码生成->运行库 与 Hybird CUDA/C++ Options ->Runtime Library里面两个设置不同导致。有<a href="http://stackoverflow.com/questions/2046228/how-do-i-start-a-new-cuda-app-in-visual-studio-2008">文章</a>说，这两个这是应该是一致的。但我发现只要两个设置一旦相同，就会发生链接错误。</p>
+<div>然后重新新建一个项目，惊喜地发现可以命中断点了，一时找不到原因，就把项目复制到原来工作的目录里打算迁移东西过来。经过一阵折腾，诡异地发现在同一个项目里面的两个.cu一个能中断点，一个不能&hellip;&hellip;</div>
+<div>偶然进入反汇编窗口仔细观察，发现能调试的.cu对应了一段包含源代码的汇编，不能调试的.cu对应一段汇编。而这段汇编的开头只是路径的一部分。</div>
+<div>更发现了生成过程中，出现以下警告：</div>
+<div>
+<blockquote><p>warning: header name contains characters that cannot be represented in Unicode</p></blockquote>
+<p>马上意识到可能是中文路径的问题。</p></div>
+<div>把项目从没有中文的路径打开，清理，生成。可以命中断点了：）</div>
+<div>原来是CUDA3.0里的nvcc还不支持中文路径&hellip;&hellip;</div>

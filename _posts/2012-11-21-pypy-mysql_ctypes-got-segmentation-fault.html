@@ -1,0 +1,38 @@
+---
+layout: post
+status: publish
+published: true
+title: pypy 1.9+mysql_ctypes 0.5+libmysqlclient15 got Segmentation fault on CentOS
+  5.8 64bit
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40302
+wordpress_url: http://blog.lzhaohao.info/?p=40302
+date: '2012-11-21 14:46:48 +0000'
+date_gmt: '2012-11-21 06:46:48 +0000'
+categories:
+- linux
+- mysql
+tags:
+- mysql
+- pypy
+comments:
+- id: 116
+  author: Myoula
+  author_email: myoula@qq.com
+  author_url: ''
+  date: '2012-11-21 15:20:00 +0000'
+  date_gmt: '2012-11-21 07:20:00 +0000'
+  content: mysqldb-python 已经支持 pypy了
+---
+<p>在一台CentOS 5.8 64bit的机器上使用pypy 1.9, mysql_ctypes 0.5查询数据库出现Segmentation fault。gdb了一下，堆栈都被破坏了。只好另觅他法。</p>
+<p>When I use pypy 1.9, mysql_ctypes 0.5, I got a Segmentation fault querying MySQL database. First I try to gdb it, the stack is messed up. Have to find another way out.</p>
+<p>想起有另一台机器使用同样程序与库一直正常，一番查找发现差别只在于libmysqlclient.so的版本。正常的机器有多个版本，最高版本是16；而出错的机器最高的是15。将libmysqlclient.so.16复制到出错机器，发现查询正常了。为了库的完整，找了一个libmysqlclient16的<a href="http://pkgs.org/centos-5-rhel-5/atomic-x86_64/mysqlclient16-5.1.59-1.el5.art.x86_64.rpm/download/">rpm</a>安装。</p>
+<p>Then I remember that there is another machine running the same version of program and library. Finally I found that the only difference between these two machines is the version of libmysqlclient.so. In the normal machine, there are multiple versions, the largest version is 16. And in the problem machine the largest version is 15. Then I try to copy the libmysqlclient.so.16 to the problem machine, everything is OK. For competence, I found a libmysqlclient16 <a href="http://pkgs.org/centos-5-rhel-5/atomic-x86_64/mysqlclient16-5.1.59-1.el5.art.x86_64.rpm/download/">rpm</a> and install it.</p>
+<p>问题解决。</p>
+<p>Problem solved.</p>

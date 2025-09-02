@@ -1,0 +1,100 @@
+---
+layout: post
+status: publish
+published: true
+title: python中实例动态绑定的方法访问私有方法
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40001
+wordpress_url: "/2011/05/24/python-dynamic-instance-bound-method-access-to-private-method.html"
+date: '2011-05-24 09:46:59 +0000'
+date_gmt: '2011-05-24 01:46:59 +0000'
+categories:
+- python
+tags:
+- python
+comments:
+- id: 385
+  author: Lotaku
+  author_email: qq317399510@gmail.com
+  author_url: ''
+  date: '2015-04-29 17:16:00 +0000'
+  date_gmt: '2015-04-29 09:16:00 +0000'
+  content: 现在，types 的用法可以参考：http://wiki.woodpecker.org.cn/moin/IntroMixin
+---
+<p>
+python有一个编译好的模块，需要增加一个方法。由于不想修改源代码再编译，所以使用动态绑定方法来给实例增加方法。</p>
+<p>第一印象，想到使用如下方法：</p>
+<pre class="brush: python;fontsize: 100; first-line: 1; ">def foo(self):
+	print self.name
+
+a = A()
+a.foo = foo</pre>
+<pre class="brush: python;fontsize: 100; first-line: 1; ">>>> a.foo()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: foo() takes exactly 1 argument (0 given)</pre>
+<p>结果是无法访问实例的变量。  比较新绑定的方法与原有的实例方法，发现原有的实例方法是bound method。只有bound method才能访问实例的变量。</p>
+<p>要动态为实例绑定方法，可以使用new模块(<a href="http://docs.python.org/library/new.html">http://docs.python.org/library/new.html</a>)。 （文档中说new模块已经过期，推荐使用types模块。但我看types的文档，想不明白如何取代new模块）</p>
+<pre class="brush: python;fontsize: 100; first-line: 1; ">import new
+a.foo = new.instancemethod(foo, a, A)</pre>
+<p>问题又来了，新加的方法里有调用实例的私有函数（以双下划线开头），报了如下错误：</p>
+<pre class="brush: python;fontsize: 100; first-line: 1; ">class A():
+    def __private(self):
+        print "private"
+
+    def public(self):
+        self.__private()
+
+def foo(self):
+    self.__private()
+
+a = A()
+import new
+a.foo = new.instancemethod(foo, a, A)
+a.foo()</pre>
+<pre class="brush: python;fontsize: 100; first-line: 1; ">Traceback (most recent call last):
+  File "E:tmptest.py", line 14, in <module>
+    a.foo()
+  File "E:tmptest.py", line 9, in foo
+    self.__private()
+AttributeError: A instance has no attribute '__private'</pre>
+<p>通过观察原有方法和动态绑定方法的字节码，发现LOAD_ATTR有差别。原有方法的LOAD_ATTR是&ldquo;_A__private&rdquo;，动态绑定的方法的LOAD_ATTR是&ldquo;__private&rdquo;</p>
+<pre class="brush: python;fontsize: 100; first-line: 1; ">class A():
+    def __private(self):
+        print "private"
+
+    def public(self):
+        self.__private()
+
+def foo(self):
+    self.__private()
+
+a = A()
+import dis
+dis.dis(a.public)
+a.public()
+
+import new
+a.foo = new.instancemethod(foo, a, A)
+dis.dis(a.foo)
+a.foo()</pre>
+<pre class="brush: python;fontsize: 100; first-line: 1; ">  6           0 LOAD_FAST                0 (self)
+              3 LOAD_ATTR                0 (_A__private) # a.public
+              6 CALL_FUNCTION            0
+              9 POP_TOP
+             10 LOAD_CONST               0 (None)
+             13 RETURN_VALUE
+private
+  9           0 LOAD_FAST                0 (self)
+              3 LOAD_ATTR                0 (__private) # a.foo
+              6 CALL_FUNCTION            0
+              9 POP_TOP
+             10 LOAD_CONST               0 (None)
+             13 RETURN_VALUE</pre>
+<p>这里的原因是python会对private方法进行名字粉碎(<a href="http://docs.python.org/tutorial/classes.html#private-variables">name mangling</a>) 。因此修改foo方法里面的调用为self._A__private()，通过。但这样修改后，方法对于不同的class会不通用，有待研究更好的方法</p>

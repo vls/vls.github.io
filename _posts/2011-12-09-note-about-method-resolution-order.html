@@ -1,0 +1,89 @@
+---
+layout: post
+status: publish
+published: true
+title: "《Python高级编程》读书笔记：方法解释顺序浅析"
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40242
+wordpress_url: http://blog.lzhaohao.info/?p=40242
+date: '2011-12-09 14:31:58 +0000'
+date_gmt: '2011-12-09 06:31:58 +0000'
+categories:
+- python
+tags:
+- python
+- mro
+comments:
+- id: 110
+  author: Carel
+  author_email: carel@inkstagram.com
+  author_url: ''
+  date: '2012-02-02 04:11:00 +0000'
+  date_gmt: '2012-02-02 04:11:00 +0000'
+  content: |
+    Hi Liang Zhaohao,
+
+
+    Happy Chinese New Year and best wishes for the year of the Dragon.
+
+    We are ink361.com a Internet start-up based in Guangzhou, Zhujiang New Town, active in online photography business.  We are looking for a experienced software developer. A minimum of 3 years experience is required.
+
+    You should have experience and knowledge of:
+    Python
+    Java-script
+    Mongodb
+    Tornado
+
+    - Full-time/ part-time/ freelance
+    - We offer excellent conditions and pay.
+
+    Reply to email carel@inkstagram.com with your details, experience and salary requirement, If you are interested to become part of an international successful internet company.
+
+    Cheers,
+
+    Carel van Apeldoorn
+---
+<p>Python在2.2引入了New-style object(<a href="http://docs.python.org/reference/datamodel.html#new-style-and-classic-classes">ref</a>)，而且在2.3引入了新的方法解释顺序(Method resolution order，以下简称MRO)，新的MRO解决了多继承下的方法解释顺序问题。</p>
+<p>考虑如下代码：</p>
+<pre class="brush:python">class BaseBase:
+	def foo(self):
+		print 'BaseBase'
+
+class Base1(BaseBase):
+	pass
+
+class Base2(BaseBase):
+	def foo(self):
+		print 'Base2'
+
+class MyClass(Base1, Base2):
+	pass
+
+o = MyClass()
+o.foo() // prints 'BaseBase'</pre>
+<p>因为在Old-style object，方法解释顺序是&ldquo;深度优先且从左往右&rdquo;，MyClass解释foo方法时，在Base1(左边这路)找到BaseBase，就返回BaseBase的foo方法了。这跟从最近的继承层次开始找的直觉不同。</p>
+<p>对于New-style object，引用了C3解释方法：<br />
+定义一个列表的头和尾部。对于列表[C1, C2, C3]，其头是C1，尾是[C2, C3]。（熟悉函数式编程的同学应该不陌生）</p>
+<p><strong>C3方法公式如下：</strong><br />
+L[MyClass(Base1, Base2)] = MyClass + merge(L[Base1], L[Base2], Base1, Base2)<br />
+其中L为类的线性化继承层次</p>
+<p><strong>Merge算法是：</strong><br />
+1. 取第一个列表的头（即L[Base1][0]），如果这个头没有出现在任何列表的尾部，就把它加到L[MyClass]中，并从合并中的列表删除；否则查找下一个列表的头，作同样的判断。<br />
+2. 如果所有类都被删除，则算法成功完成；如果不能找到符合条件的列表头（好的表头），则失败，Python拒绝创建MyClass类</p>
+<p>通过类的__mro__可以看到类的MRO列表</p>
+<pre class="brush:python">In [13]: MyClass.__mro__
+Out[13]:&nbsp;
+(<class '__main__.MyClass'>,
+&nbsp;<class '__main__.Base1'>,
+&nbsp;<class '__main__.Base2'>,
+&nbsp;<class '__main__.BaseBase'>,
+&nbsp;<type 'object'>)</pre>
+<p>对于很多更复杂的情形，附录文档有更详尽的解释</p>
+<p>参考文档：<br />
+<a href="http://www.python.org/getit/releases/2.3/mro/">The Python 2.3 Method Resolution Order</a></p>

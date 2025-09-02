@@ -1,0 +1,92 @@
+---
+layout: post
+status: publish
+published: true
+title: 注意Python中strptime的效率问题
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40201
+wordpress_url: http://blog.lzhaohao.info/?p=40201
+date: '2011-10-12 16:27:40 +0000'
+date_gmt: '2011-10-12 08:27:40 +0000'
+categories:
+- python
+tags:
+- python
+- strptime
+- performance
+comments:
+- id: 31
+  author: phus lu
+  author_email: phus.lu@gmail.com
+  author_url: ''
+  date: '2011-10-16 16:32:00 +0000'
+  date_gmt: '2011-10-16 16:32:00 +0000'
+  content: |
+    一般这样优化即可。
+
+    import _strptime
+    _strptime._getlang = lambda:(None,None)
+---
+<p>Python中datetime,time等类型都有strptime方法，将时间字符串根据格式解析成相应的对象。很多时候我们的需求只是解析"%Y-%m-%d %H:%M:%S"格式的字符串，而strptime会根据locale作相应不同的处理，增加了不必要的复杂度，在某些场合成为了性能瓶颈。</p>
+<p>在python的mail-list上早有人提出<a href="http://mail.python.org/pipermail/python-list/2009-July/1210596.html">这个问题</a>，里面提到使用正则表达式解析。</p>
+<p>遂动手测试下：</p>
+<pre class="brush:python">
+#!/usr/bin/env python
+import datetime
+import os
+import re
+import timeit, cProfile
+
+def strptime():
+    with open('time.txt', 'r') as f:
+        for line in f:
+            line = line.rstrip(os.linesep)
+            dt = datetime.datetime.strptime(line, "%Y-%m-%d %H:%M:%S")
+
+
+def reg():
+    rep = re.compile(r'(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2}):(\d{2})')
+    with open('time.txt', 'r') as f:
+        for line in f:
+            line = line.rstrip(os.linesep)
+            m = rep.match(line)
+            dt = datetime.datetime(int(m.group(1)),
+             int(m.group(2)),
+             int(m.group(3)),
+             int(m.group(4)),
+             int(m.group(5)),
+             int(m.group(6))
+             )
+
+if __name__ == '__main__':
+
+    t1 = timeit.Timer("reg()","from __main__ import reg")
+    t2 = timeit.Timer("strptime()", "from __main__ import strptime")
+
+    cProfile.run("t1.timeit(3);print")
+    print""
+    cProfile.run("t2.timeit(3);print")
+</pre>
+<p>在开发机上得到如下结果：</p>
+<pre>
+         72741 function calls (72698 primitive calls) in 1.119 CPU seconds
+
+         219657 function calls (219510 primitive calls) in 3.176 CPU seconds
+</pre>
+<p>可见提升还是很大的。</p>
+<p>2011-10-17 EDIT: 有童鞋在评论提出另一种方法绕过语言检查，提高strptime速度：</p>
+<pre class="brush:python">
+import _strptime
+_strptime._getlang = lambda: (None, None)
+</pre>
+<p>测试结果：</p>
+<pre>
+         138657 function calls (138510 primitive calls) in 2.161 CPU seconds
+</pre>
+<p>比起未优化的有1/3提升，但仍是正则优化的两倍耗时，供大家参考</p>

@@ -1,0 +1,77 @@
+---
+layout: post
+status: publish
+published: true
+title: 记项目Python-MySQL访问类的优化
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40091
+wordpress_url: http://blog.lzhaohao.info/?p=40091
+date: '2011-07-29 16:32:59 +0000'
+date_gmt: '2011-07-29 08:32:59 +0000'
+categories:
+- linux
+- python
+tags:
+- python
+- cython
+- 优化
+comments:
+- id: 25
+  author: python.cn(news, jobs)
+  author_email: en.simple.is.better@gmail.com
+  author_url: http://simple-is-better.com/
+  date: '2011-07-29 23:18:24 +0000'
+  date_gmt: '2011-07-29 15:18:24 +0000'
+  content: 推了 http://simple-is-better.com/news/622
+---
+<h1>背景</h1>
+<p>接手一些Python项目的后续开发与维护，发现这些项目都用同一个数据库访问类，而生成的结果行竟然是用list存的，一个简单的row['id']访问需要遍历整行去找，遂优化之</p>
+<h1>改写成dict</h1>
+<p>一般访问数据行的字段都是使用字段名访问，显然应该使用dict。但也有可能使用数字下标访问，例如对于select count(*)的结果集，可能就使用rs[0][0]访问了。因此还需要一个list去存结果集的字段名顺序。</p>
+<p>其实MySQLdb Driver有DictCursor可直接获得dict结果。当结果集的列有重复字段，第二个重名字段会加上表别名前缀。例如select * FROM tableA as A, tableB as B，两个表都有字段id，tableB的id会使用B.id这个key。<br />
+对于可以用下标访问的需求，也需要额外加个list来存字段名顺序。这个list是从cursor的description生成的。问题在于cursor的description里，tableB的id的字段名仍然是id，当想用下标访问tableB的id时，查找list获得id这个字段名，得到的却是tableA的结果。暂时没有想到解决这个问题的方法。因此还是使用默认cursor，手动生成结果集。</p>
+<h1>结果测试</h1>
+<p>改写成dict后，测试耗时只有原来的50%。对于列很多的结果集，从原来遍历整行O(n)才拿到结果，变成O(1)，改善还是很可观的。</p>
+<h1>使用Cython进一步加速</h1>
+<p>在纯Python的基础上，已经很难再有提高了。考虑使用<a href="http://cython.org">Cython</a>将其编译成C extension。对于数据库访问类这种&ldquo;底层&rdquo;的类，平时很少会改动，但使用非常频繁，进一步优化还是值得的。</p>
+<p>对于能确定静态类型的地方，例如for循环中的i，自定义的Python class，都用cdef指定类型。对于参数或者返回值中有能确定静态类型的Python函数，也可以使用cpdef修饰。</p>
+<p>编译后测试，耗时只有改成dict后版本的1/7左右，是原始未优化版本的6%左右，速度提升有15倍！</p>
+<h1>项目实测</h1>
+<p>以上的测试结果只是纯跑分的测试，实际效果还是要放到本来的项目体现。找了一个报表的调用，数据库查询结果是5k行。</p>
+<pre class="brush: bash">
+$ time -p curl -s http://app08.gz/fd/data/pilfered_time_txt/?btime=2011-07-04\&amp;etime=2011-07-11\&amp;product=mh\&amp;get_state= | wc -l
+5737
+real 4.48
+user 0.01
+sys 0.22
+$ time -p curl -s http://localhost:8004/fd/data/pilfered_time_txt/?btime=2011-07-04\&amp;etime=2011-07-11\&amp;product=mh\&amp;get_state= | wc -l
+5737
+real 2.42
+user 0.02
+sys 0.13
+</pre>
+<p>上面的是未优化版本的结果<br />
+下面的是使用c extension版本的结果，大约有45%的提升。</p>
+<p>PS:<br />
+在import cython生成的so时，曾经遇到ImportError</p>
+<pre class="brush: python">
+>>> import db
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ImportError: dynamic module does not define init function (initdb)
+</pre>
+<p>解决方法是注意生成cython扩展的setup.py，ext_modules里面的Extension的第一个参数必须是你将来要import的名字。例如我要import db，那么就要写成：</p>
+<pre class="brush: python">
+ext_modules = [Extension("db", ["db.pyx"])]
+</pre>
+<p>对于生成的so，可以使用</p>
+<pre class="brush: bash">
+strings db.so | grep db
+</pre>
+<p>来查看是否正确生成了initdb这个入口。</p>

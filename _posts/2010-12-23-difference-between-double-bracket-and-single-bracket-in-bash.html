@@ -1,0 +1,157 @@
+---
+layout: post
+status: publish
+published: true
+title: bash中双方括号与单方括号的区别
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 29001
+wordpress_url: "/2010/12/23/difference-between-double-bracket-and-single-bracket-in-bash.html"
+date: '2010-12-23 01:44:24 +0000'
+date_gmt: '2010-12-22 17:44:24 +0000'
+categories:
+- linux
+tags: []
+comments: []
+---
+<ol>
+<li>对于大多数的shell，[与test同义。[是一个程序，在/usr/bin/[<br /> [[是一个keyword，只在ksh和bash支持。&nbsp;</li>
+<li>[[与[的一些区别：<br />
+<table>
+<tbody>
+<tr>
+<td>
+<p class="line891"><strong>Feature</strong></p>
+</td>
+<td>
+<p class="line891"><strong>new test</strong> <tt>[[</tt></p>
+</td>
+<td>
+<p class="line891"><strong>old test</strong> <tt>[</tt></p>
+</td>
+<td>
+<p class="line891"><strong>Example</strong></p>
+</td>
+</tr>
+<tr>
+<td rowspan="4">
+<p class="line862">string comparison</p>
+</td>
+<td>
+<p class="line891">></p>
+</td>
+<td>
+<p class="line862">></p>
+</td>
+<td>
+<p class="line862">-</p>
+</td>
+</tr>
+<tr>
+<td>
+<p class="line891"><</p>
+</td>
+<td>
+<p class="line862"><</p>
+</td>
+<td>
+<p class="line862">-</p>
+</td>
+</tr>
+<tr>
+<td>
+<p class="line862">= (or ==)</p>
+</td>
+<td>
+<p class="line862">=</p>
+</td>
+<td>
+<p class="line862">-</p>
+</td>
+</tr>
+<tr>
+<td>
+<p class="line862">!=</p>
+</td>
+<td>
+<p class="line862">!=</p>
+</td>
+<td>
+<p class="line862">-</p>
+</td>
+</tr>
+<tr>
+<td rowspan="2">
+<p class="line862">expression grouping</p>
+</td>
+<td>
+<p class="line891">&amp;&amp;</p>
+</td>
+<td>
+<p class="line862">-a</p>
+</td>
+<td>
+<p class="line891"><tt>[[&nbsp;-n&nbsp;$var&nbsp;&amp;&amp;&nbsp;-f&nbsp;$var&nbsp;]]&nbsp;&amp;&amp;&nbsp;echo&nbsp;"$var&nbsp;is&nbsp;a&nbsp;file"</tt></p>
+</td>
+</tr>
+<tr>
+<td>
+<p class="line891"><tt>||</tt></p>
+</td>
+<td>
+<p class="line862">-o</p>
+</td>
+<td>
+<p class="line862">-</p>
+</td>
+</tr>
+<tr>
+<td>
+<p class="line862">Pattern matching</p>
+</td>
+<td>
+<p class="line862">= (or ==)</p>
+</td>
+<td>
+<p class="line862">(not available)</p>
+</td>
+<td>
+<p class="line891"><tt>[[&nbsp;$name&nbsp;=&nbsp;a*&nbsp;]]&nbsp;||&nbsp;echo&nbsp;"name&nbsp;does&nbsp;not&nbsp;start&nbsp;with&nbsp;an&nbsp;'a':&nbsp;$name"</tt></p>
+</td>
+</tr>
+<tr>
+<td>
+<p class="line891">RegularExpression matching</p>
+</td>
+<td>
+<p class="line862">=~</p>
+</td>
+<td>
+<p class="line862">(not available)</p>
+</td>
+<td>
+<p class="line891"><tt>[[&nbsp;$(date)&nbsp;=~&nbsp;^Fri&nbsp;...&nbsp;13&nbsp;]]&nbsp;&amp;&amp;&nbsp;echo&nbsp;"It's&nbsp;Friday&nbsp;the&nbsp;13th!"</tt></p>
+</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>[[没有glob展开，所以条件测试时变量不必加引号
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">file="file1 file2"
+[ -e "$file" ] #必须加双引号
+[[ -e $file ]]</pre>
+</li>
+<li>[[中的括号不必转义了
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">[[ -f $file1 &amp;&amp; ( -d $dir1 || -d $dir2) ]]
+[ -f "$file1" -a ( -d "$dir1" -o -d "$dir2" ) ]</pre>
+</li>
+</ol>
+<p>参考资料：</p>
+<ul>
+<li><a href="http://mywiki.wooledge.org/BashFAQ/031">http://mywiki.wooledge.org/BashFAQ/031</a></li>
+</ul>

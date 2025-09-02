@@ -1,0 +1,60 @@
+---
+layout: post
+status: publish
+published: true
+title: Nginx中HttpLimitReqModule的burst参数略解
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40274
+wordpress_url: http://blog.lzhaohao.info/?p=40274
+date: '2012-06-26 23:13:55 +0000'
+date_gmt: '2012-06-26 15:13:55 +0000'
+categories:
+- web
+tags:
+- nginx
+comments:
+- id: 381
+  author: laike9m
+  author_email: laike9m@gmail.com
+  author_url: http://laike9m.com/
+  date: '2015-01-13 17:15:00 +0000'
+  date_gmt: '2015-01-13 09:15:00 +0000'
+  content: 找了好多资料中文的英文的只有你这篇讲清了 burst 的含义，虽然是自己推了一遍之后才清楚
+---
+<p>Nginx有个HttpLimitReqModule，可以限制请求的频率，其中有个参数burst在<a href="http://wiki.nginx.org/HttpLimitReqModule">文档http://wiki.nginx.org/HttpLimitReqModule</a>不甚详尽，故读其代码了解之。</p>
+<p>源码在src/http/modules/ngx&#92;_http&#92;_limit&#92;_req&#92;_module.c，关于burst的核心代码在这。</p>
+<pre><code>#!c
+//src/http/modules/ngx\_http\_limit\_req\_module.c:396
+ms = (ngx_msec_int_t) (now - lr->last);
+
+excess = lr->excess - ctx->rate * ngx_abs(ms) / 1000 + 1000;
+
+if (excess < 0) {
+    excess = 0;
+}
+
+*ep = excess;
+
+if ((ngx_uint_t) excess > limit->burst) {
+    return NGX_BUSY;
+}
+
+if (account) {
+    lr->excess = excess;
+    lr->last = now;
+    return NGX_OK;
+}
+</code></pre>
+<p>excess初始值是0，假设现在ctx->rate是2000（即2 request/s），这次请求距离上次请求是400ms。</p>
+<p>那么excess = 0 - 2000 * 400 / 1000 + 1000 = 200。如果limit->burst是0，那么200 > 0，会返回NGX_BUSY即是503了。</p>
+<p>假如burst是1，limit->burst即是1000，那么如果请求是每隔400ms来一个，共需5个才会填满limit->burst(每个请求将会增加200 excess)，到第6个才会返回503。</p>
+<p>推导出公式，假设设置频率是r request/s，每次请求距离上次请求t ms，设置burst为b，那么返回503的临界请求个数x是<br />
+&#92;begin{equation}<br />
+  x = floor(b * &#92;frac {( 1000 / r )} {( 1000 / r - t )})<br />
+&#92;end{equation}</p>

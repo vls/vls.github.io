@@ -1,0 +1,118 @@
+---
+layout: post
+status: publish
+published: true
+title: 在命令行中安装KVM ubuntu 10.04虚拟机
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40035
+wordpress_url: http://blog.lzhaohao.info/?p=40035
+date: '2011-06-12 17:09:32 +0000'
+date_gmt: '2011-06-12 09:09:32 +0000'
+categories:
+- linux
+tags:
+- linux
+- kvm
+- ubuntu
+comments:
+- id: 115
+  author: JJLIU&#039;S WORLD &raquo; 通过console连接远程kvm虚拟机
+  author_email: ''
+  author_url: https://ljinliuj-jjliu.rhcloud.com/?p=60
+  date: '2012-11-08 15:00:53 +0000'
+  date_gmt: '2012-11-08 07:00:53 +0000'
+  content: "[...] http://blog.lzhaohao.info/archive/install-kvm-ubuntu-1004-guest-os-in-command-line/
+    [...]"
+---
+<p>一般虚拟机都很容易安装，尤其是使用有图形界面的虚拟机软件。<br />
+但在某些场合，只能命令行安装。</p>
+<p>现在linux流行的虚拟机软件有Xen\KVM等。ubuntu自从9.04开始，从源中去掉Xen，转为提供KVM。本文记录下命令行安装KVM虚拟机的过程。<br />
+Host主机是在Ubuntu 11.04，安装的Guest主机将使用Ubuntu 10.04</p>
+<h1>准备</h1>
+<pre class="brush:bash">
+sudo apt-get install kvm libvirt-bin virtinst
+</pre>
+<p>你还需要有一个Ubuntu 10.04 的ISO，我选用的是server 32位版。然后把iso mount起来</p>
+<pre class="brush:bash">
+sudo mkdir /media/iso
+sudo mount -o loop /media/1T/ISO/linux/ubuntu-10.04.2-server-i386.iso /media/iso
+cd /media/iso
+python -m SimpleHTTPServer
+</pre>
+<p>使用python命令可以以当前目录为根目录，创建一个简易HTTP Server，留作之后的步骤使用。</p>
+<h1>创建虚拟机</h1>
+<p>将以下内容写到一个bash脚本，如build.sh：</p>
+<pre class="brush:bash">
+#!/bin/bash
+
+if [ "$#" -ne 2 ]; then
+        echo "Usage: $0  "
+        exit 0
+fi
+
+name=$1
+file=$2
+
+virt-install -n ${name} \
+-r 512 --vcpus=2 --nographic \
+--os-type=linux --os-variant=ubuntuLucid \
+--disk path=${file},size=5 \
+-v --arch=i386 -d \
+--connect qemu:///system \
+--accelerate \
+--location http://localhost:8000/ubuntu  \
+--extra-args="text console=tty0 utf-8 console=ttyS0,115200"
+
+</pre>
+<p>使用</p>
+<pre class="brush:bash">./build.sh datanode1 vm1.img</pre>
+<p>即可开始创建Guest OS，过程中会有一段时间黑屏，KVM进程会占用大量CPU，这是正常的，请耐心等待。</p>
+<p>很快会进入到命令行安装Ubuntu的界面，按照向导操作即可。其中有一步让你选安装什么包，请选上OpenSSH，当然你也可以之后再安装。<em>（其中有一步是选择源镜像，按照<a href="http://apt-blog.net/cheat-notes-about-using-xen-under-debian-ubuntu">某文章</a>，是可以用iso mount起来，然后建立HTTP服务器来作为源的，但我尝试失败了，如果你知道，请告诉我）</em></p>
+<p>经过漫长的从网上源下载安装后，Ubuntu Guest OS就已经装好了。</p>
+<h1>配置虚拟机</h1>
+<p>使用virsh命令可以进入虚拟机管理shell，list --all命令可以列出现有的虚拟机。<br />
+使用start datanode即可启动虚拟机，使用console datanode即可把当前console连接上虚拟机。</p>
+<p>登录进虚拟机后，查看下IP。推荐使用ssh登录虚拟机而不是console，console模式在vi编辑时会有问题，应该是shell的问题，懒得深究了。<br />
+默认KVM的虚拟机会使用NAT/DHCP配置，这里我把它改成Static IP，方便之后ssh登录。</p>
+<h2>配置静态IP</h2>
+<pre class="brush:bash">
+sudo vi /etc/network/interfaces
+</pre>
+<p>将iface eth0 inet dhcp那行注释掉，配置如下：</p>
+<pre class="brush:bash">
+#iface eth0 inet dhcp
+iface eth0 inet static
+address 192.168.122.101
+netmask 255.255.255.0
+gateway 192.168.122.1
+</pre>
+<p>然后执行命令</p>
+<pre class="brush:bash">
+sudo ifdown eth0 &amp;&amp; sudo ifup eth0
+</pre>
+<h1>创建第二个虚拟机</h1>
+<p>有了第一个虚拟机，如果需要创建另一个一模一样的虚拟机，可以使用virt-clone命令。</p>
+<pre class="brush:bash">
+virt-clone --connect=qemu:///system -d -f vm2.img -o datanode1 -n datanode2
+</pre>
+<p>复制好之后，需要修改一些地方以便与之前源虚拟机区分开来。<br />
+通过console连接上datanode2，编辑/etc/hosts和/etc/hostname，修改datanode1为datanode2<br />
+然后执行</p>
+<pre class="brush:bash">
+sudo rm /etc/udev/rules.d/70-persistent-net.rules
+sudo reboot
+</pre>
+<p>重启后即可让虚拟机生成自己的网络配置</p>
+<p>重复上一节的配置静态IP步骤，并在Host主机内配置hosts指向Guest OS的地址。至此，多个虚拟机的配置即告完成。</p>
+<p>参考：</p>
+<ul>
+<li><a href="http://www.techotopia.com/index.php/Installing_an_Ubuntu_10.x_KVM_Guest_OS_from_the_Command-line_(virt-install_and_virsh)">Installing an Ubuntu 10.x KVM Guest OS from the Command-line (virt-install and virsh)</a></li>
+<li><a href="https://help.ubuntu.com/community/KVM/CreateGuests#Cloning a virtual machine">KVMCreateGuests</a></li>
+<li><a href="http://www.havetheknowhow.com/Configure-the-server/KVM-clone-a-vm.html">How clone a KVM virtual machine on Ubuntu Server</a></li>
+</ul>

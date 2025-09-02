@@ -1,0 +1,78 @@
+---
+layout: post
+status: publish
+published: true
+title: 使用Postfix+Cyrus-SASL+dovecot搭建POP3/SMTP邮件服务器
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 30001
+wordpress_url: "/2011/02/1/pop3-smtp-server-by-postfix-cyrus-sasl-dovecot.html"
+date: '2011-02-01 12:26:42 +0000'
+date_gmt: '2011-02-01 04:26:42 +0000'
+categories:
+- linux
+tags: []
+comments:
+- id: 9
+  author: Zhang Huangbin
+  author_email: michaelbibby@gmail.com
+  author_url: http://www.iredmail.org/
+  date: '2011-06-16 20:24:47 +0000'
+  date_gmt: '2011-06-16 12:24:47 +0000'
+  content: "用免费、开源的 iRedMail 比自己搭建邮件服务器更简单些。它使用的也都是开源软件。\r\nhttp://www.iredmail.org/
+    （目前在国内无法访问，原因你懂的，换成 www.iredmail.com 试试）"
+---
+<h1>安装</h1>
+<p>需要安装以下组件：</p>
+<ul>
+<li>postfix</li>
+<li>cyrus_sasl</li>
+<li>dovecot</li>
+</ul>
+<p>为了省事，我是直接yum install的。</p>
+<h1>配置</h1>
+<h3>postfix</h3>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">sudo vi /etc/postfix/main.cf</pre>
+<p>设置</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">myhostname = mail.lzhaohao.info
+mydomain = lzhaohao.info
+myorigin = $myhostname</pre>
+<p>然后设置</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">inet_interfaces = all
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain, mail.$mydomain, www.$mydomain, ftp.$mydomain</pre>
+<p>其中，inet_interfaces指定可以连接邮件服务器的网卡界面；mydestination指定本邮件服务器会收下的信件的域名。</p>
+<h3>SMTP密码验证</h3>
+<p>安装好cyrus-sasl后</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">sudo vi /etc/sysconfig/saslauthd</pre>
+<p>设置</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">MECH = shadow</pre>
+<p>shadow的意思是使用系统自带的/etc/passwd,/etc/shadow进行密码验证，也就是系统用户名和密码就是邮箱的用户名和密码。cyrus-sasl还可以使用LDAP等验证方式，此处使用shadow作为例子。<br /> 然后设置cyrus使用saslauthd这个服务来验证：</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">sudo vi /usr/lib/sasl2/smtpd.conf
+log_level: 3
+pwcheck_method: saslauthd
+mech_list: PLAIN LOGIN</pre>
+<p>再告诉postfix使用smtp验证：</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">sudo vi /etc/postfix/main.cf</pre>
+<p>增加以下内容</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous
+broken_sasl_auth_clients = yes
+smtpd_recipient_restrictions =
+     permit_mynetworks
+     permit_sasl_authenticated
+     reject_unauth_destination</pre>
+<p>验证：</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">telnet localhost 25
+ehlo localhost
+</pre>
+<p>看到250-AUTH LOGIN PLAIN字样即表示配置成功。</p>
+<h3>POP3配置</h3>
+<p>安装好dovecot后，修改配置项为：</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">protocols = pop3
+listen = *
+</pre>

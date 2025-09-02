@@ -1,0 +1,31 @@
+---
+layout: post
+status: publish
+published: true
+title: pypy 2.0在CentOS 5.x 编译问题小结
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40321
+wordpress_url: https://blog.lzhaohao.info/?p=40321
+date: '2013-06-24 20:55:33 +0000'
+date_gmt: '2013-06-24 12:55:33 +0000'
+categories:
+- python
+tags:
+- python
+- pypy
+- centos
+comments: []
+---
+<p><a href="http://pypy.org/download.html">pypy 2.0</a>发布了，又要编译了。环境仍然是CentOS 5.x 64bit。</p>
+<p>问题：tmp目录空间不够<br />
+解决：调用的是python里面的tempfile来获取临时目录的。所以定义环境变量TMP或者TEMP或者TMPDIR都可以。</p>
+<p>问题：default value for 'w_ignored1' can only be None, got ''; （详细信息：<a href="http://bpaste.net/show/OUN1VScbqnuujKEkGHJ8/">http://bpaste.net/show/OUN1VScbqnuujKEkGHJ8/</a>）<br />
+解决：irc上说用新版本pypy或cpython来执行。我用的是pypy 1.9也不行，就用了cpython 2.6.7，通过。</p>
+<p>问题：CentOS自带SQLite版本过低<br />
+解决：安装更新版本的SQLite再编译。</p>

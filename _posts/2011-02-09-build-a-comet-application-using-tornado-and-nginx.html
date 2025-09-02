@@ -1,0 +1,96 @@
+---
+layout: post
+status: publish
+published: true
+title: 使用Tornado Web Server+Nginx构建Comet应用
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 32001
+wordpress_url: "/2011/02/9/build-a-comet-application-using-tornado-and-nginx.html"
+date: '2011-02-09 14:15:51 +0000'
+date_gmt: '2011-02-09 06:15:51 +0000'
+categories:
+- web
+tags: []
+comments:
+- id: 7
+  author: python.cn(news, jobs)
+  author_email: en.simple.is.better@gmail.com
+  author_url: http://simple-is-better.com/
+  date: '2011-06-15 17:43:45 +0000'
+  date_gmt: '2011-06-15 09:43:45 +0000'
+  content: 已转发给 Python 系的同学，谢谢。新文在这里：http://simple-is-better.com/news/356
+- id: 118
+  author: 山楂
+  author_email: watsonhaw@hotmail.com
+  author_url: ''
+  date: '2013-03-23 14:21:00 +0000'
+  date_gmt: '2013-03-23 06:21:00 +0000'
+  content: 感谢
+---
+<p>一般的web应用，都会使用ajax轮询来获得服务器的更新。但轮询方式会增加服务器的压力，而且很多请求获得的数据并没有更新，这些请求都是无意义的，徒增服务器压力而已。</p>
+<p>使用<a href="http://en.wikipedia.org/wiki/Comet_(programming)">Comet</a>技术可以一定程度地解决以上问题。Comet的实现很多，大多数需要使用特定的HTTP Server来实现。本文介绍使用基于python的Tornado Web Server来实现Server Side的Comet，为了贴近生产环境，还会介绍Tornado如何配合Nginx工作。</p>
+<p>安装</p>
+<p>到<a href="http://www.tornadoweb.org/">http://www.tornadoweb.org/</a>可以下载到最新的Tornado，那里也有安装的说明。</p>
+<p>编写第一个Tornado程序</p>
+<p>编辑comet.py，内容如下</p>
+<pre class="brush: python;fontsize: 100; first-line: 1; ">#!/usr/bin/env python
+import tornado.httpserver
+import tornado.ioloop
+import tornado.web
+
+class MainHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous #说明1
+    def get(self):
+        some_async_func(callback=self.wait)
+
+    def wait(self, result):
+        if result:
+            self.write(result)
+            self.finish() #说明2
+        else:
+            tornado.ioloop.IOLoop.instance().add_timeout(time.time() + 0.5, lambda: some_async_func(callback=self.wait))
+            #说明3
+application = tornado.web.Application([
+    (r"/", MainHandler),
+])
+
+if __name__ == "__main__":
+    http_server = tornado.httpserver.HTTPServer(application)
+    http_server.listen(8999)
+    tornado.ioloop.IOLoop.instance().start()</pre>
+<ul>
+<li>说明1：使用此decorator即可以把get方法non-blocking化</li>
+<li>说明2：non-blocking化的请求必须调用self.finish()完成请求</li>
+<li>说明3：如果需要sleep等待，应该使用Tornado的IOLoop的add_timeout方法。使用其他休眠方法如time.sleep会block住当前线程，而Tornado是一个单线程Server，会导致其他请求无法执行的问题。</li>
+</ul>
+<p>此时执行comet.py，一个non-blocking的server端已经搭建成功。</p>
+<p>要注意的问题是，如果不加超时机制，服务端会不断执行，即使客户端已经断开。因此还需自己实现超时机制。</p>
+<p>Nginx配置</p>
+<pre class="brush: plain;fontsize: 100; first-line: 1; ">    upstream frontends {
+        server 127.0.0.1:8999;
+    }
+    server {
+        listen 8888;
+        location / {
+            proxy_read_timeout 1800;
+            proxy_pass_header Server;
+            proxy_set_header Host $http_host;
+            proxy_redirect off;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Scheme $scheme;
+            proxy_pass http://frontends;
+        }
+    }</pre>
+<p>此配置采用proxy upstream到backend的原因是方便upstream负载均衡，只需要upstream中添加多几个ip端口即可。前面提过，Tornado是单线程Server，启动cpu核数个Tornado进程并绑定到cpu，能够提高机器的吞吐量。</p>
+<p>需要特别指出的是，要根据上述应用的超时机制，设置proxy_read_timeout，proxy_read_timeout必须大于应用的超时。否则将会有504请求返回。</p>
+<p>至此，一个Comet应用的服务器端就完成了。由于Comet使用的是长连接机制，需要特别注意从客户端到真正后端程序之间每个环节的超时机制，而且网络连接的不可靠性影响将会更大，需要考虑更多边界条件。</p>
+<p>参考资料：</p>
+<ul>
+<li><a href="http://www.tornadoweb.org/documentation">http://www.tornadoweb.org/documentation</a></li>
+</ul>

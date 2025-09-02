@@ -1,0 +1,51 @@
+---
+layout: post
+status: publish
+published: true
+title: glibc getaddrinfo BUG导致Python脚本卡死
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40382
+wordpress_url: http://blog.lzhaohao.info/?p=40382
+date: '2015-12-01 18:53:00 +0000'
+date_gmt: '2015-12-01 10:53:00 +0000'
+categories:
+- linux
+- python
+tags: []
+comments: []
+---
+<p>上一篇博客还是2014年的，2015年赶紧写一篇</p>
+<p>遇到一个Python脚本卡死，是运行了大约9小时的。几乎每隔一个星期就会卡死一次，加上sigalarm handler也无法kill掉自身，sigalarm handler没有触发。</p>
+<p>gdb上卡死的进程，发觉线程卡在sem_wait，查看所有线程</p>
+<pre><code>#!bash
+(gdb) info threads
+ Id Target Id Frame
+ 11 Thread 0x7f734fd5b700 (LWP 13356) "python" 0x00007f7351c2cd8d in recvmsg () at ../sysdeps/unix/syscall-template.S:82
+ 10 Thread 0x7f734f55a700 (LWP 13357) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ 9 Thread 0x7f734ed59700 (LWP 13358) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ 8 Thread 0x7f734e558700 (LWP 13359) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ 7 Thread 0x7f734dd57700 (LWP 13360) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ 6 Thread 0x7f734d556700 (LWP 13361) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ 5 Thread 0x7f734cd55700 (LWP 13362) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ 4 Thread 0x7f734c554700 (LWP 13363) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ 3 Thread 0x7f734bd53700 (LWP 13364) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ 2 Thread 0x7f734b552700 (LWP 13365) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86
+ * 1 Thread 0x7f7352ba7700 (LWP 13349) "python" sem_wait () at ../nptl/sysdeps/unix/sysv/linux/x86_64/sem_wait.S:86</code></pre>
+<p>看来线程11拿住sem，其他线程都在等待。看下线程11的栈</p>
+<pre><code>#!bash
+(gdb) bt
+ #0 0x00007f7351c2cd8d in recvmsg () at ../sysdeps/unix/syscall-template.S:82
+ #1 0x00007f7351c4d58c in make_request (fd=8, pid=13349, seen_ipv4=, seen_ipv6=, in6ai=, in6ailen=) at ../sysdeps/unix/sysv/linux/check_pf.c:119
+ #2 0x00007f7351c4da0a in __check_pf (seen_ipv4=0x7f734fd5768f, seen_ipv6=0x7f734fd5768e, in6ai=0x7f734fd57670, in6ailen=0x7f734fd57668) at ../sysdeps/unix/sysv/linux/check_pf.c:271
+ #3 0x00007f7351c0a4d7 in *__GI_getaddrinfo (name=0xda0490b4 "reg.163.com", service=0x7f734fd57730 "80", hints=0x7f734fd57750, pai=0x7f734fd57700) at ../sysdeps/posix/getaddrinfo.c:2386
+ #4 0x0000000000527b94 in PyEval_SetProfile (func=0xb00000000, arg=) at ../Python/ceval.c:3752</code></pre>
+<p>recvmsg卡住。strace/lsof这个进程，发现recvmsg的fd是一个netlink socket，对应ROUTE</p>
+<p>Google下，发现是glibc的一个BUG：<a title="https://sourceware.org/bugzilla/show_bug.cgi?id=12926" href="https://sourceware.org/bugzilla/show_bug.cgi?id=12926" target="_blank">https://sourceware.org/bugzilla/show_bug.cgi?id=12926</a>，要到2.23才修复。</p>
+<p>而生产机是debian 7，glibc还是2.13，暂时不想折腾升级glibc，弱弱地写了个监控脚本监控卡死进程，发现就kill掉&hellip;&hellip;</p>
+<div id="spoon-plugin-kncgbdglledmjmpnikebkagnchfdehbm-2" style="display: none;"></div>

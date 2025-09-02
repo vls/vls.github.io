@@ -1,0 +1,34 @@
+---
+layout: post
+status: publish
+published: true
+title: 在suse10上编译带有zlib, ssl, sqlite和readline的python 2.7
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 21001
+wordpress_url: "/2010/09/29/compile-python-27-with-zlib-ssl-sqlite-readline-on-suse-10.html"
+date: '2010-09-29 03:10:42 +0000'
+date_gmt: '2010-09-28 19:10:42 +0000'
+categories:
+- linux
+tags: []
+comments: []
+---
+<h1>准备</h1>
+<p>下载：</p>
+<p>http://www.sqlite.org/sqlite-amalgamation-3.7.2.tar.gz<br /> http://www.openssl.org/source/openssl-1.0.0a.tar.gz<br /> ftp://ftp.gnu.org/gnu/readline/readline-6.1.tar.gz</p>
+<p>当然还有Python的源码</p>
+<h1>编译</h1>
+<p>zlib:<br /> 在Python-2.7/Modules/zlib有zlib的源码，configure/make/make install之</p>
+<p>openssl, readline, sqlite:<br /> 都是configure(openssl里是config) /make/make install，注意readline模块make install后要运行ldconfig，不然之后编译出来的python会提示找不到readline模块</p>
+<p>python:<br /> 也是configure/make/make install，注意make完会提示哪里模块不会编译，如果里面出现了zlib/_ssl/_sqlite/readline则表示前面的安装有误。</p>
+<p>到此为止，enjoy python 2.7</p>
+<h1>链接</h1>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">rm /usr/bin/python /usr/bin/pydoc
+ln -s /usr/bin/python /usr/local/bin/python
+ln -s /usr/bin/pydoc /usr/local/bin/pydoc</pre>

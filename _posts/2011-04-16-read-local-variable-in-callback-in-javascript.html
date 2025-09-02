@@ -1,0 +1,41 @@
+---
+layout: post
+status: publish
+published: true
+title: javascript在回调中读取本地变量
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 38001
+wordpress_url: "/2011/04/16/read-local-variable-in-callback-in-javascript.html"
+date: '2011-04-16 02:22:24 +0000'
+date_gmt: '2011-04-15 18:22:24 +0000'
+categories:
+- web
+tags: []
+comments: []
+---
+<p>有时候我们需要在回调中读取本地变量。例如：</p>
+<pre class="brush: jscript;fontsize: 100; first-line: 1; ">//jQuery
+function foo() {
+    var a = 1;
+    $.get("bar.php", function(res){
+        alert(a); // undefined
+    });
+}</pre>
+<p>这时回调函数的上下文已经不是foo函数的内部了。想要在回调函数读取本地变量，需要为回调函数创造一个包含本地变量的上下文。</p>
+<p>javascript的基本的上下文范围是函数作用域，我们可以新建一个函数，里面包含本地变量的副本。然后返回回调，从而创造出一个包含我们预设上下文的回调函数。</p>
+<p>这就需要用一个函数生成一个函数。在javascript可以如此实现：</p>
+<pre class="brush: jscript;fontsize: 100; first-line: 1; ">function foo() {
+    var a = 1;
+    var func = (function(a_copy) {
+        return function(res) {
+            //real callback
+            alert(a_copy);
+    })(a);
+    $.get("bar.php", func);
+}</pre>

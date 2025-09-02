@@ -1,0 +1,38 @@
+---
+layout: post
+status: publish
+published: true
+title: 下载youku等视频网站的视频并快速转换成适合iPhone4/iPod Touch4播放的格式
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40111
+wordpress_url: http://blog.lzhaohao.info/?p=40111
+date: '2011-08-07 23:29:47 +0000'
+date_gmt: '2011-08-07 15:29:47 +0000'
+categories:
+- windows
+tags:
+- youku
+- video
+- iPhone
+- iPod Touch
+comments: []
+---
+<p>想下载一些电视剧进iTouch4播放，找不到合适的片源下载，就打起视频网站的主意。优酷那些所谓&ldquo;超清&rdquo;的视频清晰度还不错，适合用来做片源</p>
+<h1>下载视频</h1>
+<p>下载优酷等视频网站的视频，可以使用<a href="http://www.flvcd.com/">硕鼠</a>，一个免费，没有恶意插件的视频下载软件。支持很多视频网站。把优酷页面的链接放进去解析，得到N个链接，可以在硕鼠中下载。下载完毕后，硕鼠自带合并功能，把N个分视频合成一个视频，就得到一集的flv文件。</p>
+<h1>转换</h1>
+<p>查看flv文件，发觉编码已经是H264/AAC，音视频的编码已经适合在苹果设备播放，但在avplayer播放flv会有点卡，而且基本不能拖动播放，即使开了硬件加速。按理iTouch4是支持H264视频硬件加速的，应该是avplayer对flv格式支持不太好。其他视频播放软件没有尝试，iPad上有迅雷看看和QQ影音HD，可惜iTouch上暂时没有这种免费的多视频格式播放软件。因为视频编码已经是H264，所以想找一款软件能复制音视频流，只是换一个封装格式。</p>
+<p>之前分别试过MediaEncoder、曦力音视频转换专家两个软件。MediaEncoder功能很强大，而且支持CUDA加速，但设置起来很繁琐，需要有一定音视频的知识。它也推出针对不同设备简化配置的版本。但用起来，即使选中复制音视频流，但还是耗时很久，中途还报错，多次反复尝试无果，只能放弃。</p>
+<p>曦力音视频转换专家是Xilisoft对中国地区推出的为多种移动设备优化的音视频转换软件。当年用iPod Mini时就有xilisoft的软件来放歌进iPod了。可惜没找到复制音视频流的选项，而转换过程耗时很长，即使启用了CUDA加速。虽然最终转换出来的结果能顺利在iTouch4流畅播放，但耗时长仍然不可忍受，本来视频编码就是合适的啊。</p>
+<p>经过一阵Google，找到<a href="http://moitah.net/">FLV Extract</a>这款开源小软件，有GUI和命令行版本。GUI使用很简单，把flv文件拖进去，就会生成同名的.264, .aac, .txt文件，分别是视频流、音频流和Timecodes文件。另外一款软件<a href="http://gpac.wp.institut-telecom.fr/mp4box/">MP4box</a>，则可以把之前生成的文件封装成mp4。只需要执行以下命令行</p>
+<pre class="brush: bash">
+mp4box -add "filename.264:fps=25.0039" -add "filename.aac" "filename_output.mp4"
+</pre>
+<p>注意有fps设置，fps指的是帧率，可以在FLV Extract导出时看到。</p>
+<p>封装过程很快。至此，一个适合在苹果设备播放的视频就制作好了，在avplayer里可以看到这文件显示成QuickTime的图标。上传，播放，流畅，拖动后立即播放。</p>

@@ -1,0 +1,25 @@
+---
+layout: post
+status: publish
+published: true
+title: 升级nscd引起crontab不运行
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 26001
+wordpress_url: "/2010/12/16/nscd-upgrade-lead-to-crontab-not-run.html"
+date: '2010-12-16 06:19:46 +0000'
+date_gmt: '2010-12-15 22:19:46 +0000'
+categories:
+- 运维
+- linux
+tags: []
+comments: []
+---
+<p>近来suse有一个<a href="http://www.exploit-db.com/exploits/15304/">glibc漏洞</a>，升级包中包含了nscd的rpm。升级rpm后，nscd进程会重启。但有部分用户的crontab出现不执行的情况。</p>
+<p>起初怀疑是nscd重启，导致ldap用户查询失败而crontab不运行。之后发现这些用户有些在本地存在，有些在本地不存在。不能确定是这个原因。</p>
+<p>解决方法是重启cron进程。</p>

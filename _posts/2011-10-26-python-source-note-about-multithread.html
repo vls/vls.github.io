@@ -1,0 +1,81 @@
+---
+layout: post
+status: publish
+published: true
+title: "《Python源码剖析》读书笔记：多线程"
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40213
+wordpress_url: http://blog.lzhaohao.info/?p=40213
+date: '2011-10-26 18:15:05 +0000'
+date_gmt: '2011-10-26 10:15:05 +0000'
+categories:
+- python
+tags:
+- python
+- source
+- multithread
+comments:
+- id: 113
+  author: Fzsk
+  author_email: fzsk@sina.com
+  author_url: ''
+  date: '2012-09-19 15:22:00 +0000'
+  date_gmt: '2012-09-19 07:22:00 +0000'
+  content: 哎。真的是买不到这本书，淘宝上一家说是正版，但是标价679元，直接就算了。
+- id: 123
+  author: bizman
+  author_email: grd@getroad.cn
+  author_url: ''
+  date: '2013-12-23 14:48:00 +0000'
+  date_gmt: '2013-12-23 06:48:00 +0000'
+  content: http://pan.baidu.com/share/link?shareid=457878&amp;uk=1495796980&amp;fid=2868497788
+    这有下载的
+- id: 124
+  author: kingc
+  author_email: shibamo@gmail.com
+  author_url: ''
+  date: '2014-08-25 16:28:00 +0000'
+  date_gmt: '2014-08-25 08:28:00 +0000'
+  content: 我邮件了陈儒,似乎他也没有实体书了.不过他透露了打算出更新版,期待是python 3.0的,电子版已经让我受益匪浅了.
+---
+<p>（如无特别注明，以下笔记都是基于Linux平台）</p>
+<ul>
+<li>GIL覆盖面不只是Python的解释器，还包括Python的C API</li>
+<li>Python线程根据"已执行指令数"来切换线程，在Python 2.5+，这个阈值是100</li>
+</ul>
+<pre class="brush:python">
+>>> import sys
+>>> sys.getcheckinterval()
+100
+</pre>
+<p>但有些字节码指令执行并不会增加这个计数，因此线程切换时已执行指令数可能会比这个略多<br />
+** 当字节码执行之后通过goto转移到fast_next_opcode，这时不会更新计数器<br />
+** 线程通过阻塞调度，并不会重置计数器</p>
+<ul>
+<li>GIL并不是随着解释器启动而创建的，只有用户第一次使用thread的时候创建。</li>
+<li>在不同平台上GIL使用不同的实现，在Linux使用信号量。</li>
+<li>创建线程使用pthread库，Python线程是使用系统原生线程。</li>
+<li>子线程创建后马上申请GIL</li>
+<li>PyThreadState保存了这个线程的上下文信息</li>
+<li>
+<p>当一个活动线程挂起后，调度到哪个线程由操作系统线程调度决定。当前活动线程挂起前，会释放GIL</p>
+</li>
+<li>
+<p>Python线程调度有两种方式，一种是标准调度，另一种是阻塞调度。<br />
+** 标准调度是当前线程已执行指令数大于100时主动释放GIL，让其他线程有机会运行。<br />
+** 阻塞调度是当前线程执行到阻塞的系统调用（例如time.sleep）之前，释放GIL，让其他线程有机会运行。</p>
+</li>
+<li>
+<p>thread模块提供基础的Lock对象，默认使用信号量，如果在信号量有问题的情况下，使用pthread_lock</p>
+</li>
+<li>当前线程对Lock对象加锁前，先释放GIL，获得锁后再获取GIL。（Threadmodule.c:38）</li>
+<li>threading模块是Python写成的。里面的RLock/Condition/Semaphore/Event锁对象都是基于thread.Lock</li>
+<li>threading模块的Thread启动分两步，第一步使用thread.start_new_thread创建原生线程，原生线程执行__bootstrap函数，此时线程状态为创建中，放入_limbo字典；第二步在__bootstrap函数中将自己放到_active字典，以线程ID为key，然后执行run函数</li>
+</ul>
+<p>PS: 求购正版《Python源码剖析》，或求提供陈儒联系方式，谢谢！</p>

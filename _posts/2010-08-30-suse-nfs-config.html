@@ -1,0 +1,39 @@
+---
+layout: post
+status: publish
+published: true
+title: suse下nfs配置
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 3001
+wordpress_url: "/2010/08/30/suse-nfs-config.html"
+date: '2010-08-30 02:30:28 +0000'
+date_gmt: '2010-08-29 18:30:28 +0000'
+categories:
+- linux
+tags: []
+comments: []
+---
+<h1>安装</h1>
+<p>略</p>
+<h1>启动服务</h1>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">service portmap start #启动portmap服务
+service nfsserver start #启动nfsserver服务</pre>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">chkconfig portmap on #设置portmap为自启动服务
+chkconfig nfsserver start #设置nfsserver为自启动服务</pre>
+<h1>服务端配置</h1>
+<ol>
+<li>配置/etc/hosts.allow和/etc/hosts.deny设置访问限制</li>
+<li>编辑/etc/exports<br /> /home/vls 192.168.111.129(ro)<br /> <本机共享目录> <可访问IP>(访问权限)</li>
+<li>exportfs [-aruv]               exportfs来从新扫描一次/etc/exports文件， 不需重启nfs 服务<br /> 参数说明：<br /> -a: 全部挂载（或者卸载）/etc/exports 文件的设置<br /> -r: 从新挂载/etc/exports 里设置，此外，同步更新/etc/exports 及/var/lib/nfs/xtab的内容<br /> -u: 卸载某一目录<br /> -v: 在导出时，将共享目录显示在屏幕上</li>
+</ol>
+<h1>客户端配置</h1>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">service portmap start</pre>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">mount -t nfs -o rw 192.168.111.128:/home/vls /mnt/home/vls</pre>
+<h4>开机自启动</h4>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">vi /etc/fstab192.168.111.128:/home/vls /mnt/home/vls nfs rw</pre>

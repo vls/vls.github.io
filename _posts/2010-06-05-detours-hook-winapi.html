@@ -1,0 +1,66 @@
+---
+layout: post
+status: publish
+published: true
+title: 使用Detours跟踪WinAPI调用情况
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40004
+wordpress_url: "/2010/06/5/detours-hook-winapi.html"
+date: '2010-06-05 21:45:00 +0000'
+date_gmt: '2010-06-05 13:45:00 +0000'
+categories:
+- windows
+tags: []
+comments: []
+---
+<p><a href="http://research.microsoft.com/en-us/projects/detours/">Detours</a>是微软研究院的一个用于hook WinAPI的工具。</p>
+<p>安装后安装目录的samples目录里面有很多项目。我们用到的是traceapi和withdll项目。</p>
+<h4>自定义traceapi</h4>
+<p>打开traceapi目录里面的_win32.cpp，可以看到已经默认hook了绝大部分的WinAPI。我们可以把大多数注释掉，只保留我们关心的几个函数，免得之后要分析的log过大。</p>
+<p>以ReadProcessMemory为例，看看如何自定义trace的结果。在_win32.cpp，关于一个WinAPI函数会有四处地方：</p>
+<p>第一处：</p>
+<p>&nbsp;</p>
+<pre class="brush: cpp;fontsize: 100; first-line: 1; ">BOOL (__stdcall * Real_ReadProcessMemory)(HANDLE a0,
+                                          LPCVOID a1,
+                                          LPVOID a2,
+                                          DWORD_PTR a3,
+                                          PDWORD_PTR a4)
+    = ReadProcessMemory;</pre>
+<p>第二处：</p>
+<pre class="brush: cpp;fontsize: 100; first-line: 1; ">BOOL __stdcall Mine_ReadProcessMemory(HANDLE a0,
+                                      LPCVOID a1,
+                                      LPVOID a2,
+                                      DWORD_PTR a3,
+                                      PDWORD_PTR a4)
+{
+    _PrintEnter("ReadProcessMemory(%p,%p,%p,%p,%p)n", a0, a1, a2, a3, a4);
+
+    BOOL rv = 0;
+    __try {
+        rv = Real_ReadProcessMemory(a0, a1, a2, a3, a4);
+    } __finally {
+        _PrintExit("ReadProcessMemory(,,,,) -> %pn", rv);
+    };
+    return rv;
+}</pre>
+<p>第三处</p>
+<pre class="brush: cpp;fontsize: 100; first-line: 1; ">ATTACH(&amp;(PVOID&amp;)Real_ReadProcessMemory, Mine_ReadProcessMemory);</pre>
+<p>第四处</p>
+<pre class="brush: cpp;fontsize: 100; first-line: 1; ">DETACH(&amp;(PVOID&amp;)Real_ReadProcessMemory, Mine_ReadProcessMemory);</pre>
+<p>如果不想trace某个函数，将第一、第二和第四处注释掉即可。</p>
+<p>主要自定义的点在第二处，例如a2是buffer地址，a4是读取的字节数。当真正的ReadProcessMemory读取完毕后，我们就可以用这两个信息来看看究竟读了什么。因此在finally子句可以改成一下这样：</p>
+<pre class="brush: cpp;fontsize: 100; first-line: 1; ">int size = (int) a4;
+char buf[MAXBUF];
+PrintByte(buf, a2, size);
+
+_PrintExit("ReadProcessMemory(,,,,) -> %p,%p -> %sn", rv, a2, buf);</pre>
+<p>这里的PrintByte函数是将字节数组转为十六进制字符串。</p>
+<h4>使用</h4>
+<p>withdll的使用很简单，看看命令行说明即可。</p>
+<p>下载安装打开<a href="http://technet.microsoft.com/en-us/sysinternals/bb896647.aspx">DbgView</a>。使用withdll启动目标程序并将自定义好的traceapi.dll注入进程，即可在DbgView的窗口里看到traceapi打印的信息了。</p>

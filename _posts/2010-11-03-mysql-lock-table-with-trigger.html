@@ -1,0 +1,39 @@
+---
+layout: post
+status: publish
+published: true
+title: mysql中lock带trigger的表所引起的隐式lock
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 22001
+wordpress_url: "/2010/11/3/mysql-lock-table-with-trigger.html"
+date: '2010-11-03 14:59:24 +0000'
+date_gmt: '2010-11-03 06:59:24 +0000'
+categories:
+- mysql
+tags: []
+comments: []
+---
+<p>如果显式地lock一个表，而且这个表有trigger，那么trigger中所牵涉的表也会被lock。</p>
+<ul>
+<li>显式lock表的同时会隐式lock那些表</li>
+<li>会尽量使用低级锁。即能加读锁不会加写锁。</li>
+<li>当trigger中的表牵涉到修改(insert, delete, update)，将会加写锁。&nbsp;</li>
+</ul>
+<p>考虑如下语句</p>
+<pre class="brush: sql;fontsize: 100; first-line: 1; ">LOCK TABLES t1 WRITE, t2 READ</pre>
+<p>而t1有如下trigger</p>
+<pre class="brush: sql;fontsize: 100; first-line: 1; ">CREATE TRIGGER t1_a_ins AFTER INSERT ON t1 FOR EACH ROW
+BEGIN
+  UPDATE t4 SET count = count+1
+      WHERE id = NEW.id AND EXISTS (SELECT a FROM t3);
+  INSERT INTO t2 VALUES(1, 2);
+END;</pre>
+<p>t1 写锁。<br /> t2 显式虽然是读锁，但因为t1的trigger里有insert到t2，所以t2是写锁。<br /> t3 读锁。<br /> t4 写锁。因为t1的trigger里有update到t4。</p>
+<p>参考资料：</p>
+<p>MySQL Reference Manual:&nbsp;<a href="http://dev.mysql.com/doc/refman/5.1/en/lock-tables-and-triggers.html">http://dev.mysql.com/doc/refman/5.1/en/lock-tables-and-triggers.html</a></p>

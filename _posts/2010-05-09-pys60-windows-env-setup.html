@@ -1,0 +1,48 @@
+---
+layout: post
+status: publish
+published: true
+title: Pys60在Windows下的开发环境配置步骤（含模拟器）
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40005
+wordpress_url: "/2010/05/9/pys60-windows-env-setup.html"
+date: '2010-05-09 20:06:00 +0000'
+date_gmt: '2010-05-09 12:06:00 +0000'
+categories:
+- windows
+tags: []
+comments: []
+---
+<p>先确定你的手机平台版本，例如我的E71是S60 3rd FP(Feature Pack) 1。</p>
+<div>下载：</div>
+<div>
+<ul>
+<li>ActivePerl</li>
+<li><a href="http://www.forum.nokia.com/info/sw.nokia.com/id/4a7149a5-95a5-4726-913a-3c6f21eb65a5/S60-SDK-0616-3.0-mr.html">S60 Platform SDKs for Symbian OS, for C++</a> （可能会失效）</li>
+<li><a href="https://garage.maemo.org/frs/?group_id=854">Pys60 SDK</a></li>
+<li><a href="https://garage.maemo.org/frs/?group_id=854">PythonForS60</a></li>
+</ul>
+</div>
+<div>安装：</div>
+<div>PC端：</div>
+<div>
+<ol>
+<li>安装ActivePerl</li>
+<li>安装S60 Platform SDKs for Symbian OS, for C++</li>
+<li>安装PythonForS60</li>
+<li>解压Pys60 SDK里面的epoc32文件夹，覆盖C++ SDK安装目录里面epoc32文件夹</li>
+</ol>
+</div>
+<div>至此，可以在开始菜单找到模拟器来运行，并在&ldquo;安装&rdquo;里可找到Python shell，enjoy programmming python in S60!</div>
+<div>
+<blockquote>
+<p>如果在模拟器运行Python shell出现以下错误信息：&ldquo;Check if the following components are installed: Python Runtime and PIPS Library&rdquo;，可以下载<a href="http://www.forum.nokia.com/info/sw.nokia.com/id/91d89929-fb8c-4d66-bea0-227e42df9053/Open_C_SDK_Plug-In.html">Open C/C++ Plug-ins for S60 3rd Edition</a>安装。</p>
+</blockquote>
+</div>
+<div>一般用PythonForS60里面的Application Packager打包的sis不能用在模拟器里面，可以直接把.py文件放在C++ SDK里面的epoc32winscwcDatapython路径下，然后在模拟器的Python Shell中的"Run script"就可以找到你的.py文件了。这比打包sis安装更方便调试。</div>

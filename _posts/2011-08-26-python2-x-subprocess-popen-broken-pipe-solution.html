@@ -1,0 +1,85 @@
+---
+layout: post
+status: publish
+published: true
+title: Python2.x subprocess.Popen的Broken pipe解决方法
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40125
+wordpress_url: http://blog.lzhaohao.info/?p=40125
+date: '2011-08-26 18:47:49 +0000'
+date_gmt: '2011-08-26 10:47:49 +0000'
+categories:
+- python
+tags:
+- python
+comments:
+- id: 114
+  author: Rsj217
+  author_email: rsj217@gmail.com
+  author_url: ''
+  date: '2012-10-27 22:54:00 +0000'
+  date_gmt: '2012-10-27 14:54:00 +0000'
+  content: '请教 如果是window下出现这样的问题，怎么解决
+
+'
+- id: 117
+  author: Imgui
+  author_email: imgui@qq.com
+  author_url: ''
+  date: '2013-03-12 11:14:00 +0000'
+  date_gmt: '2013-03-12 03:14:00 +0000'
+  content: 赞一个！另外既然py2系列有这个bug，博主为什么不写patch提交给python官方？ hg pull request也可以啊。
+---
+<p>考虑如下代码：</p>
+<pre class="brush:python">
+#!/usr/bin/env python
+p1 = Popen(["cat", "somebigfile"], stdout = PIPE)
+p2 = Popen(["head"], stdin = p1.stdout, stdout = PIPE)
+print p2.communicate()[0]
+</pre>
+<p>会出现</p>
+<pre class="brush:bash">
+cat: write error: Broken pipe
+</pre>
+<p>原因是在Unix-like系统中，Python启动就会SIG_IGN掉SIG_PIPE，致使cat获取不了SIG_PIPE信号，还向已关闭的管道写入。很久之前就有人提出这个<a href="http://bugs.python.org/issue1652">BUG</a>了，这个BUG在Python 3.x已经修复，但是一直没有在Python 2.x实现。</p>
+<p>解决方法如下：<br />
+1. 下载对应版本的Python源码，找到Lib\subprocess.py（我发现2.6.x的跟2.7.x的就不同）<br />
+2. 把该文件放到项目文件夹，改名为sub.py<br />
+3. 作如下改动：</p>
+<pre class="brush:diff">
+--- /usr/lib/python2.6/subprocess.py    2010-04-16 21:58:41.000000000 +0800
++++ sub.py      2011-08-26 17:45:57.576284992 +0800
+@@ -429,7 +429,7 @@
+     import fcntl
+     import pickle
+ 
+-__all__ = ["Popen", "PIPE", "STDOUT", "call", "check_call", "CalledProcessError"]
++__all__ = ["Popen", "PIPE", "STDOUT", "call", "check_call", "CalledProcessError", "_eintr_retry_call"]
+ 
+ try:
+     MAXFD = os.sysconf("SC_OPEN_MAX")
+</pre>
+<p>4. 新建new_subprocess.py， 建立Popen_new类，继承原来subprocess的Popen，并把sub.py里面Popen类的POSIX版本的_execute_child方法copy过来。</p>
+<p>5. 在</p>
+<pre class="brush:python">
+if cwd is not None:
+	os.chdir(cwd)
+</pre>
+<p>后面加上如下代码：</p>
+<pre class="brush:python">
+import signal
+signals = ('SIGPIPE', 'SIGXFZ', 'SIGXFSZ')
+for sig in signals:
+	if hasattr(signal, sig):
+		signal.signal(getattr(signal, sig), signal.SIG_DFL)
+</pre>
+<p>（此处有一个<a href="https://gist.github.com/1173156">示例</a>，Python 2.6.5版本的）</p>
+<p>6. 在项目里
+<pre class="brush:python">from new_subprocess import Popen_new as Popen</pre>
+<p>即可</p>

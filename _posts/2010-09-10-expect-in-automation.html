@@ -1,0 +1,54 @@
+---
+layout: post
+status: publish
+published: true
+title: expect在自动化脚本中的应用
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 19001
+wordpress_url: "/2010/09/10/expect-in-automation.html"
+date: '2010-09-10 07:37:08 +0000'
+date_gmt: '2010-09-09 23:37:08 +0000'
+categories:
+- linux
+tags: []
+comments: []
+---
+<h1>自动登录</h1>
+<p>很多时候，我们都需要通过ssh连到远程主机去执行一些命令或脚本。如果没有配置好公钥验证，必须手动输入密码。面对上百台机器，手动输入将会是一场灾难。</p>
+<p>这时expect脚本就能解决这个困境。</p>
+<p>这个expect脚本可能如下：</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">#!/usr/bin/expect --
+##########################################################################
+# Usage: ssh_expect.sh listorder host username password port
+##########################################################################
+#!/usr/bin/expect
+set LISTORDER [lindex $argv 0]
+set HOST [lindex $argv 1]
+set NAME [lindex $argv 2]
+set PASS [lindex $argv 3]
+set PORT [lindex $argv 4]
+spawn -noecho /usr/local/bin/ssh2 -q -o StrictHostKeyChecking=no -q -l$NAME -p$PORT $HOST "$LISTORDER"
+set timeout 3600
+expect {
+"Are you sure you want to continue connecting (yes/no)?"
+{
+send "yesn"
+expect "*assword"
+send "$PASSn"
+}
+"*assword:"  { send "$PASSn" }
+}
+expect eof</pre>
+<p>用法：</p>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">./ssh_expect.sh "/share/exec_something.sh" 172.1.1.1 user_03 user_03_pwd 22</pre>
+<p>第一个参数是在远端机器所要执行的命令，之后的参数分别是远端IP，用户名，密码，端口</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>

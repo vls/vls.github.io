@@ -1,0 +1,82 @@
+---
+layout: post
+status: publish
+published: true
+title: IE/Chrome下实现td宽度自适应内容
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 33001
+wordpress_url: "/2011/02/16/td-width-auto-adjusted-by-content-in-ie-and-chrome.html"
+date: '2011-02-16 03:43:30 +0000'
+date_gmt: '2011-02-15 19:43:30 +0000'
+categories:
+- web
+tags: []
+comments: []
+---
+<p>有个需求需要实现td宽度自适应内容，发觉css中关于文字排版还是比较复杂的。</p>
+<p>最终使用</p>
+<pre class="brush: css;fontsize: 100; first-line: 1; ">width:1px;
+word-break:keep-all; /* for ie */
+white-space:nowrap; /* for chrome */</pre>
+<p>来实现。</p>
+<p>word-break原来是IE的私有属性，但在<a href="http://www.w3.org/TR/2010/WD-css3-text-20101005/">CSS3草案</a>中也吸收了。但CSS3草案中没有keep-all属性，所以对于这个需求，keep-all仍然是IE only的。</p>
+<p>white-space是white-space-collapsing和text-wrap的组合。如下表</p>
+<table class="data" style="font-family:'WenQuanYi Micro Hei Mono', 'WenQuanYi Micro Hei', 'Microsoft Yahei Mono', 'Microsoft Yahei', sans-serif!important;border-collapse:collapse;border:initial solid #005a9b;margin:1em auto;">
+<thead>
+<tr style="font-family:'WenQuanYi Micro Hei Mono', 'WenQuanYi Micro Hei', 'Microsoft Yahei Mono', 'Microsoft Yahei', sans-serif!important;">
+<th>&nbsp;</th>
+<th>New Lines</th>
+<th>Spaces and Tabs</th>
+<th>Text Wrapping</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr style="font-family:'WenQuanYi Micro Hei Mono', 'WenQuanYi Micro Hei', 'Microsoft Yahei Mono', 'Microsoft Yahei', sans-serif!important;">
+<th>normal</th>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Collapse</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Collapse</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Wrap</td>
+<td>忽略多余空行和空格，文字自动换行</td>
+</tr>
+<tr style="font-family:'WenQuanYi Micro Hei Mono', 'WenQuanYi Micro Hei', 'Microsoft Yahei Mono', 'Microsoft Yahei', sans-serif!important;">
+<th>pre</th>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Preserve</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Preserve</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">No wrap</td>
+<td>保留所有空行和空白，文字不自动换行</td>
+</tr>
+<tr style="font-family:'WenQuanYi Micro Hei Mono', 'WenQuanYi Micro Hei', 'Microsoft Yahei Mono', 'Microsoft Yahei', sans-serif!important;">
+<th>nowrap</th>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Collapse</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Collapse</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">No wrap</td>
+<td>忽略多余空行和空格，文字不自动换行</td>
+</tr>
+<tr style="font-family:'WenQuanYi Micro Hei Mono', 'WenQuanYi Micro Hei', 'Microsoft Yahei Mono', 'Microsoft Yahei', sans-serif!important;">
+<th>pre-wrap</th>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Preserve</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Preserve</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Wrap</td>
+<td>保留所有空行和空白，文字自动换行</td>
+</tr>
+<tr style="font-family:'WenQuanYi Micro Hei Mono', 'WenQuanYi Micro Hei', 'Microsoft Yahei Mono', 'Microsoft Yahei', sans-serif!important;">
+<th>pre-line</th>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Preserve</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Collapse</td>
+<td style="font-family:sans-serif;text-align:center;border:thin solid initial;padding:.2em;">Wrap</td>
+<td>合并多余空格，保留多余空行，文字自动换行</td>
+</tr>
+</tbody>
+</table>
+<p>参考资料：</p>
+<ul>
+<li><a href="http://www.w3.org/TR/2010/WD-css3-text-20101005/">http://www.w3.org/TR/2010/WD-css3-text-20101005/</a></li>
+<li><a href="http://hi.baidu.com/html5css3/blog/item/574146d5eac8dddc572c84be.html">http://hi.baidu.com/html5css3/blog/item/574146d5eac8dddc572c84be.html</a></li>
+</ul>

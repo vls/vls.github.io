@@ -1,0 +1,111 @@
+---
+layout: post
+status: publish
+published: true
+title: MySQL 5.6新特性测试
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40308
+wordpress_url: http://blog.lzhaohao.info/?p=40308
+date: '2013-04-16 16:25:11 +0000'
+date_gmt: '2013-04-16 08:25:11 +0000'
+categories:
+- mysql
+tags:
+- mysql
+comments: []
+---
+<p>在微博上看到隔壁部门的同事发布了一个介绍MySQL 5.6新特性的<a title="slide" href="http://hedengcheng.com/?p=637" target="_blank">slide</a>。遂对其中几个对我们业务有用的特性做了测试。</p>
+<p>Found a <a title="slide" href="http://hedengcheng.com/?p=637" target="_blank">slide</a> which introducing new features in MySQL 5.6, which is made by a colleague in other department. For our business, I ran some tests on some features.</p>
+<ul>
+<li>InnoDB Compression</li>
+</ul>
+<pre>//压缩前(before compress)
+Name: workticket
+Engine: InnoDB
+Version: 10
+Row_format: Compact
+Rows: 1471830
+Avg_row_length: 328
+<span style="color: #ff0000;">Data_length: 483295232</span>
+Max_data_length: 0
+Index_length: 260276224
+Data_free: 5242880
+Auto_increment: 3473533
+Create_time: 2013-04-15 16:01:01
+Update_time: NULL
+Check_time: NULL
+Collation: utf8_general_ci
+Checksum: NULL
+Create_options: 
+Comment: 工单表</pre>
+<pre>//压缩后(after compress)
+Name: workticket
+Engine: InnoDB
+Version: 10
+Row_format: Compressed
+Rows: 1553544
+Avg_row_length: 143
+<span style="color: #ff0000;">Data_length: 222281728</span>
+Max_data_length: 0
+Index_length: 121192448
+Data_free: 2621440
+Auto_increment: 3473533
+Create_time: 2013-04-15 16:06:33
+Update_time: NULL
+Check_time: NULL
+Collation: utf8_general_ci
+Checksum: NULL
+Create_options: row_format=COMPRESSED
+Comment: 工单表</pre>
+<p>但还是不够myisampack后的myisam省空间</p>
+<p>But InnoDB Compression is less storage efficient than MyISAM after myisampack.</p>
+<pre>-rw-rw---- 1 mysql mysql 9.5K Apr 16 09:35 workticket.frm
+-rw-rw---- 1 mysql mysql 9.5K Apr 16 09:45 workticket_innodb.frm
+-rw-rw---- 1 mysql mysql 336M Apr 16 09:58 workticket_innodb.ibd
+-rw-rw---- 1 mysql mysql 199M Apr 16 09:41 workticket.MYD
+-rw-rw---- 1 mysql mysql  86M Apr 16 09:44 workticket.MYI</pre>
+<pre>           Name: workticket
+         Engine: MyISAM
+        Version: 10
+     Row_format: Dynamic
+           Rows: 1593851
+ Avg_row_length: 201
+    Data_length: 321325744
+Max_data_length: 281474976710655
+   Index_length: 130242560
+      Data_free: 0
+ Auto_increment: 3473533
+    Create_time: 2013-04-16 09:35:53
+    Update_time: 2013-04-16 09:41:09
+     Check_time: 2013-04-16 09:37:03
+      Collation: utf8_general_ci
+       Checksum: NULL
+ Create_options: 
+        Comment: 工单表</pre>
+<ul>
+<li>InnoDB Online DDL</li>
+</ul>
+<pre>mysql> ALTER TABLE `workticket` ADD COLUMN `test_col` INT NOT NULL AFTER sid, LOCK=NONE;
+Query OK, 0 rows affected (5 min 25.17 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> set old_alter_table=1;
+Query OK, 0 rows affected (0.00 sec)
+mysql> ALTER TABLE `workticket` ADD COLUMN `test_col` INT NOT NULL AFTER sid, LOCK=NONE; 
+ERROR 1846 (0A000): LOCK=NONE is not supported. Reason: COPY algorithm requires a lock. Try LOCK=SHARED.
+mysql> ALTER TABLE `workticket` ADD COLUMN `test_col` INT NOT NULL AFTER sid, LOCK=SHARED;
+Query OK, 1593851 rows affected (4 min 11.89 sec)
+Records: 1593851  Duplicates: 0  Warnings: 0</pre>
+<p>虽然总体耗时更长，但DDL过程中不锁表（可query and/or 可DML）还是很吸引的（详细的DDL操作是否可query and/or 可DML可参见<a title="文档" href="http://dev.mysql.com/doc/refman/5.6/en/innodb-create-index-overview.html" target="_blank">文档</a>）。</p>
+<p>Although costing more time, that the table can be query and/or execute DML query is very amazing. (Detail can be seen in <a title="docmentation" href="http://dev.mysql.com/doc/refman/5.6/en/innodb-create-index-overview.html" target="_blank">documentation</a>)</p>
+<ul>
+<li>InnoDB-Transportable Tablespaces<br />
+没什么可测试的，就是操作成功。用途？建slave？备份？<br />
+Nothing interesting to test. It just works. What can I do with this feature? Maybe building up a slave server? Or backup up the database?</li>
+</ul>

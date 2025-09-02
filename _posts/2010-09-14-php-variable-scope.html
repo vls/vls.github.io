@@ -1,0 +1,100 @@
+---
+layout: post
+status: publish
+published: true
+title: PHP变量作用域
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 20001
+wordpress_url: "/2010/09/14/php-variable-scope.html"
+date: '2010-09-14 15:04:11 +0000'
+date_gmt: '2010-09-14 07:04:11 +0000'
+categories:
+- 未分类
+tags: []
+comments: []
+---
+<h1>花括号</h1>
+<p>很多语言都以花括号作为作用域界限，php中只有函数的花括号才构成新的作用域。</p>
+<pre class="brush: php;fontsize: 100; first-line: 1; "><?php
+if (True)
+{
+	$a = 'var a';
+}
+var_dump($a);
+for($i=0;$i<1;$i++)
+{
+	$b = 'var b';
+	for($i=0;$i<1;$i++)
+	{
+		$c = 'var c';
+	}
+	var_dump($c);
+}
+var_dump($b);
+var_dump($c);</pre>
+<p>运行结果是：</p>
+<pre class="brush: plain;fontsize: 100; first-line: 1; ">string(5) "var a" string(5) "var c" string(5) "var b" string(5) "var c"</pre>
+<p>可见if和for的花括号并无构成新的作用域。</p>
+<p>而函数：</p>
+<pre class="brush: php;fontsize: 100; first-line: 1; "><?php
+function test()
+{
+	$test = 'var test';
+}
+test();
+var_dump($test);</pre>
+<p>结果是：</p>
+<pre class="brush: plain;fontsize: 100; first-line: 1; ">NULL</pre>
+<h1>global关键字</h1>
+<p>php的执行是以一个.php脚本为单位，在一个.php脚本的执行过程中，可以include和require其他php脚本进来执行。<br /> 执行的.php脚本与include/require进来的脚本共享一个全局域(global scope)。</p>
+<p>global关键字无论在哪层，所引用的都是全局域的变量。</p>
+<p>&nbsp;</p>
+<pre class="brush: php;fontsize: 100; first-line: 1; "><?php
+$test = 'global test';
+function a()
+{
+	$test = 'test in a()';
+	function b()
+	{
+		global $test;
+		var_dump($test);
+	}
+	b();
+}
+a();</pre>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>执行结果是：</p>
+<pre class="brush: plain;fontsize: 100; first-line: 1; ">string(11) "global test"</pre>
+<h1>闭包</h1>
+<p>闭包作用域跟函数类似，内层访问外层变量，外层不能访问内层变量</p>
+<p>&nbsp;</p>
+<pre class="brush: php;fontsize: 100; first-line: 1; "><?php
+function a()
+{
+	$test = 'test in a()';
+	function b()
+	{
+		var_dump($test);
+		$varb = 'varb in b()';
+	}
+	b();
+	var_dump($varb);
+}
+a();</pre>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>执行结果：</p>
+<pre class="brush: php;fontsize: 100; first-line: 1; ">NULL NULL</pre>
+<h2>延伸阅读</h2>
+<ul>
+<li>variable scope:&nbsp;<a href="http://www.php.net/manual/en/language.variables.scope.php">http://www.php.net/manual/en/language.variables.scope.php</a></li>
+<li>php rfc closures:<a href="http://wiki.php.net/rfc/closures">http://wiki.php.net/rfc/closures</a></li>
+</ul>
+<p>&nbsp;</p>

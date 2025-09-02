@@ -1,0 +1,30 @@
+---
+layout: post
+status: publish
+published: true
+title: ubuntu 安装字体步骤
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40006
+wordpress_url: "/2010/04/30/ubuntu-install-font-steps.html"
+date: '2010-04-30 17:40:00 +0000'
+date_gmt: '2010-04-30 09:40:00 +0000'
+categories:
+- linux
+tags: []
+comments: []
+---
+<ol>
+<li>拷贝目录到/usr/share/fonts/下</li>
+<li>将字体下所有文件权限设成555</li>
+<li>建立字体缓存</li>
+</ol>
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">转到字体目录
+sudo mkfontscale
+sudo mkfontdir
+sudo fc-cache -f</pre>

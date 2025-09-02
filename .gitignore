@@ -1,0 +1,26 @@
+_site
+.sass-cache
+.jekyll-cache
+.jekyll-metadata
+vendor
+
+
+# Jekyll build output
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# Bundler dependencies
+vendor/
+.bundle/
+
+# Node dependencies (if you use npm/yarn for frontend)
+node_modules/
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db

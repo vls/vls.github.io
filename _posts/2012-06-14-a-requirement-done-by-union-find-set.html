@@ -1,0 +1,156 @@
+---
+layout: post
+status: publish
+published: true
+title: 使用并查集完成的一个需求
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40261
+wordpress_url: http://blog.lzhaohao.info/?p=40261
+date: '2012-06-14 21:55:35 +0000'
+date_gmt: '2012-06-14 13:55:35 +0000'
+categories:
+- python
+- algorithm
+tags:
+- python
+- union_find_set
+- algorithm
+comments:
+- id: 111
+  author: 开心一刻
+  author_email: lw91@foxmail.com
+  author_url: http://www.shiqumao.com/
+  date: '2012-06-19 00:01:00 +0000'
+  date_gmt: '2012-06-18 16:01:00 +0000'
+  content: 好复杂啊
+---
+<p>需求是这样的：有一个文件，每行有两个字段，帐号和IP。</p>
+<p>规则：</p>
+<ol>
+<li>同IP登录的帐号归为同一工作室 </li>
+<li>有帐号交叉的工作室归为同一工作室。 </li>
+</ol>
+<p>输出：</p>
+<p>表1：工作室编号 帐号，表2：工作室编号 IP</p>
+<p>思考：</p>
+<p>从规则1可以想到，可以把一个工作室看作一棵树，根节点是一个IP，所有字节点是这个IP登录过的帐号。那么规则2就可以看成，两个树的某个子节点是交叉的，就把两棵树连成一个森林。</p>
+<p>而其实可以看成有两个不相交的IP集合（例如刚开始两个IP下面的帐号并无交叉，此时每个IP集合里面只有1个IP），因为某个条件（帐号交叉了），需要把两个IP集合合并，很容易想到是并查集的应用。</p>
+<p>具体的做法是：在遍历文件的过程中，生成字典ipdict，key是IP，value是一个set，元素是帐号。同时生成一个字典first_urs_dict，key是帐号，value是这个帐号第一次出现的IP，为什么要这个字典呢？是因为我们只关心登录了两个或以上IP的帐号，当帐号第一次出现时，就把其IP记下，当帐号第二次出现时，看到first_urs_dict存在key，那么这个帐号就是登录了两个IP了，可以把这个IP并到一个集合里了。</p>
+<p>而并查集是提供查询某n个元素是否在同一个集合的算法。它只需要定义两个操作find(u)和union(u, v)，使用Python描述就是：</p>
+<pre><code>#!python
+root = {}
+def find(u):
+    if u not in root:
+        root[u] = u  #初始化，每个元素的根是它自己
+        return u
+
+    if find(u) == u:
+        #根是自己，立即返回
+        return u
+    else:
+        _root = find(u)
+        root[u] = _root #路径压缩
+        return _root
+
+
+def union(u, v):
+    ru = find(u)
+    rv = find(v)
+
+    if ru != rv:
+        #两个元素的根不同，把它们的并起来
+        #做法就是把其中一个根成为另一个根的子节点
+        root[rv] = ru
+</code></pre>
+<p>当find(x)和find(y)的结果是相等的，可以说明x和y在同一个集合里面。</p>
+<p>至此，把两个IP-URS树合并的关键一步已经解决。到算法结束，同一个森林里面的IP和URS自然属于同一个工作室了。</p>
+<p>附上完整的代码：</p>
+<pre><code>#!python
+#!/usr/bin/env python
+
+import os, sys
+import time
+
+root = {}
+def find(ip):
+    if ip not in root:
+        root[ip] = ip
+        return ip
+
+    rip = root[ip]
+    if rip == ip:
+        return ip
+    else:
+        _root = find(rip)
+        root[ip] = _root
+        return _root
+
+def union(u, v):
+    ru = find(u)
+    rv = find(v)
+    if ru != rv:
+        root[fv] = fu
+
+def main():
+    ip_dict = {}
+    first_urs_dict = {}
+    count = 0
+    for line in sys.stdin:
+        count += 1
+
+        if count % 100000 == 0:
+            print >> sys.stderr, count
+
+        urs, ip = line.rstrip('\\r\\n').split('\\t', 1)
+        if ip not in ip_dict:
+            s = set()
+            ip_dict[ip] = s
+        else:
+            s = ip_dict[ip]
+
+        if urs in first_urs_dict:
+
+            fip = first_urs_dict[urs]
+            if fip != ip:
+                union(fip, ip)
+
+        else:
+            s.add(urs)
+            first_urs_dict[urs] = ip
+
+    total_dict = {}
+
+    fname_ip = 'no_ip.txt'
+    fname_urs = 'no_urs.txt'
+    fip = open(fname_ip, 'w')
+    furs = open(fname_urs, 'w')
+    no = 0
+    for ip, urs_set in ip_dict.iteritems():
+        r = find(ip)
+
+        if r not in total_dict:
+            total_dict[r] = no
+            _no = no
+            no += 1
+        else:
+            _no = total_dict[r]
+
+        print >> fip, "%s\\t%s" % ( _no, ip)
+
+        for urs in urs_set:
+            print >> furs, "%s\\t%s" % (_no, urs)
+
+    fip.close()
+    furs.close()
+
+
+
+if __name__ == '__main__':
+    main()
+</code></pre>

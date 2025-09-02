@@ -1,0 +1,39 @@
+---
+layout: post
+status: publish
+published: true
+title: mysqldump的参数--databases引起的血案
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 28001
+wordpress_url: "/2010/12/16/an-accident-caused-by-mysql-parameter-databases.html"
+date: '2010-12-16 06:45:08 +0000'
+date_gmt: '2010-12-15 22:45:08 +0000'
+categories:
+- 运维
+- linux
+tags: []
+comments: []
+---
+<p>需要把一个数据库xxx导到另外一台机器中，另外一台机器已有此db，新导入的放到xxx_old。使用mysqldump导出再导入的方式。</p>
+<p>导出时使用了如下命令：</p>
+<pre class="brush: sql;fontsize: 100; first-line: 1; ">mysqldump --databases xxx > db.sql</pre>
+<p>然后没有查看导出的sql文件，就使用以下命令导入。</p>
+<pre class="brush: sql;fontsize: 100; first-line: 1; ">mysql xxx_old < db.sql</pre>
+<p>进去后发现并没有xxx_old数据库，这才发觉是覆盖了原来的数据库。</p>
+<p>查看mysql --help，发觉--databases是如下含义：</p>
+<pre class="brush: plain;fontsize: 100; first-line: 1; ">  -B, --databases     To dump several databases. Note the difference in usage;
+                      In this case no tables are given. All name arguments are
+                      regarded as databasenames. 'USE db_name;' will be
+                      included in the output.</pre>
+<p>因为--databases是为多数据库导出而设，所以会在sql里添加USE db_name语句。因为导出时db还是叫xxx，所以有USE xxx语句，自然就use了已有数据库，并drop create table导入数据了。</p>
+<p>总结：</p>
+<ol>
+<li>对于单个数据库的导出，切记不要使用--databases。</li>
+<li>导入前，均需要仔细查看将要操作的sql。</li>
+</ol>

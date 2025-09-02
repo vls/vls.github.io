@@ -1,0 +1,43 @@
+---
+layout: post
+status: publish
+published: true
+title: php添加ssh2扩展以支持ssh2方法
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 25001
+wordpress_url: "/2010/11/23/php-add-ssh2-extension.html"
+date: '2010-11-23 08:25:55 +0000'
+date_gmt: '2010-11-23 00:25:55 +0000'
+categories:
+- 未分类
+tags: []
+comments: []
+---
+<ul>
+<li>安装openssl</li>
+<li>安装libssh
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">wget http://www.libssh2.org/download/libssh2-1.2.7.tar.gz
+tar zxvf libssh2-1.2.7.tar.gz
+cd libssh2-1.2.7
+./configure
+make
+make install</pre>
+</li>
+<li>安装php-ssh2
+<pre class="brush: bash;fontsize: 100; first-line: 1; ">wget http://pecl.php.net/get/ssh2
+tar zxvf ssh2-0.11.2.tgz
+cd ssh2-0.11.2
+phpize
+./configure --with-ssh2 --with-php-config=/usr/local/php/bin/php-config
+make</pre>
+</li>
+<li>这时会显示编译好的ssh2.so的路径</li>
+<li>在php.ini添加extensions=/path/to/your/so/ssh2.so</li>
+<li>重启web server</li>
+</ul>

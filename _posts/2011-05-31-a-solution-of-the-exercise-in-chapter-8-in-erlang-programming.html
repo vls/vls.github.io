@@ -1,0 +1,99 @@
+---
+layout: post
+status: publish
+published: true
+title: "《Erlang程序设计》第8章习题一解"
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40022
+wordpress_url: http://blog.lzhaohao.info/?p=40022
+date: '2011-05-31 17:38:19 +0000'
+date_gmt: '2011-05-31 09:38:19 +0000'
+categories:
+- erlang
+tags:
+- erlang
+comments:
+- id: 119
+  author: xpg
+  author_email: 327431237@qq.com
+  author_url: ''
+  date: '2013-04-08 19:53:00 +0000'
+  date_gmt: '2013-04-08 11:53:00 +0000'
+  content: 楼主，你好，我觉得习题1的代码跟问题有出入，你注册的是start/2的pid而不是spawn（Fun）的
+---
+<p>习题1：</p>
+<pre class="brush:erlang">
+-module(ex1).
+-compile(export_all).
+
+main(_) ->
+    start(abc, fun() -> io:format("Bing~n") end),
+    start(abc, fun() -> io:format("Bang~n") end).
+
+start(AnAtom, Fun) ->
+    R = self(),
+    spawn(
+        fun() ->
+            try register(AnAtom, self()) of
+                true->
+                    R ! true,
+                    Fun()
+            catch
+                error:_ ->
+                    R ! false
+            end
+        end
+    ),
+
+    receive
+        true -> true;
+        false -> io:format("false ~n")
+    end.
+</pre>
+<p>习题2：</p>
+<pre class="brush:erlang">
+-module(ex2).
+-compile(export_all).
+
+main() ->
+	start(1000, 10),
+	start(1000, 20),
+	start(2000, 10).
+
+start(N, M) ->
+	statistics(runtime),
+	statistics(wall_clock),
+	L = create(N, []),
+	post(haha, L, M),
+	{_, Time1} = statistics(runtime),
+	{_, Time2} = statistics(wall_clock),
+	io:format("Total time : ~p(~p) ~n", [Time1*1000, Time2*1000]).
+
+create(0, L) ->
+	L;
+
+create(N, L) ->
+	Pid = spawn(fun loop/0),
+	create(N-1, [Pid|L]).
+
+loop() ->
+	receive
+		Any ->
+			io:format("Msg arrived: ~p~n", [Any]),
+			loop()
+	end.
+
+post(_ , _, 0) ->
+	void;
+
+post(Msg, L, M) ->
+	%io:format("M = ~p~n", [M]),
+	[ H ! Msg || H <-L],
+	post(Msg, L, M-1).
+</pre>

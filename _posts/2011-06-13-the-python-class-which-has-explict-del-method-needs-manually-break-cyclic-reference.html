@@ -1,0 +1,88 @@
+---
+layout: post
+status: publish
+published: true
+title: Python中带有显式__del__方法的对象需要手动释放循环引用
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40048
+wordpress_url: http://blog.lzhaohao.info/?p=40048
+date: '2011-06-13 09:53:29 +0000'
+date_gmt: '2011-06-13 01:53:29 +0000'
+categories:
+- python
+tags:
+- python
+comments:
+- id: 8
+  author: python.cn(news, jobs)
+  author_email: en.simple.is.better@gmail.com
+  author_url: http://simple-is-better.com/
+  date: '2011-06-15 17:48:25 +0000'
+  date_gmt: '2011-06-15 09:48:25 +0000'
+  content: '这一则也转了。here: http://simple-is-better.com/news/357'
+- id: 32
+  author: "《Python源码剖析》读书笔记：内存垃圾回收 | 不沉之月"
+  author_email: ''
+  author_url: http://blog.lzhaohao.info/archive/python-source-note-about-memory-garbage-collectio/
+  date: '2011-10-27 17:40:20 +0000'
+  date_gmt: '2011-10-27 09:40:20 +0000'
+  content: "[...] 垃圾检测完成后，所有在unreachable链表的对象都可以释放了，除了那些定义了del方法的对象。之前一篇blog也提到，Python不会自动回收这些对象。
+    \            /* [...]"
+- id: 33
+  author: "《Python源码剖析》读书笔记：内存垃圾回收 | 不沉之月"
+  author_email: ''
+  author_url: http://blog.lzhaohao.info/archive/python-source-note-about-memory-garbage-collection/
+  date: '2011-10-27 22:24:24 +0000'
+  date_gmt: '2011-10-27 14:24:24 +0000'
+  content: "[...] 垃圾检测完成后，所有在unreachable链表的对象都可以释放了，除了那些定义了&#045;&#045;del&#045;&#045;方法的对象。之前一篇blog也提到，Python不会自动回收这些对象。
+    \            /* [...]"
+- id: 383
+  author: Guest
+  author_email: anonymized-1941403744@disqus.com
+  author_url: ''
+  date: '2015-04-02 15:34:00 +0000'
+  date_gmt: '2015-04-02 07:34:00 +0000'
+  content: 没看懂，f怎么会出现循环引用呢？f与其它对象之间没有构成环啊？只不过是在f内部，f的一个属性引用了另一个属性而已，这只是在f内部啊。f这个对象只是创建时有一次引用而已，删除了f，引用就为0了啊
+- id: 384
+  author: ajianrelease
+  author_email: ajianbeyourself@163.com
+  author_url: ''
+  date: '2015-04-02 17:14:00 +0000'
+  date_gmt: '2015-04-02 09:14:00 +0000'
+  content: 没看懂，f怎么会出现循环引用呢？f与其它对象之间没有构成环啊？只不过是在f内部，f的一个属性引用了另一个属性而已，这只是在f内部啊。f这个对象只是创建时有一次引用而已，删除了f，引用就为0了啊
+---
+<p>Python中有自动gc，这个gc在一般情况下也可以清除循环引用的对象。</p>
+<p>不过有个例外的情况：一个对象显式定义了__del__方法。</p>
+<p>例如如下的代码：</p>
+<pre class="brush:python">
+#!/usr/bin/env python
+
+class Foo:
+    def __init__(self):
+        self._bar = {"test": self.test}
+        print "construct"
+
+    def test(self):
+        print "test"
+
+    def __del__(self):
+        print "del"
+
+f = Foo()
+del f
+</pre>
+<p>运行结果是不会打印"del"的。</p>
+<p>文档里面也有写到：<br />
+<a href="http://docs.python.org/library/gc.html#gc.garbage">http://docs.python.org/library/gc.html#gc.garbage</a></p>
+<blockquote><p>gc.garbage<br />
+A list of objects which the collector found to be unreachable but could not be freed (uncollectable objects). By default, this list contains only objects with __del__() methods. [1] Objects that have __del__() methods and are part of a reference cycle cause the entire reference cycle to be uncollectable, including objects not necessarily in the cycle but reachable only from it. Python doesn&rsquo;t collect such cycles automatically because, in general, it isn&rsquo;t possible for Python to guess a safe order in which to run the __del__() methods. If you know a safe order, you can force the issue by examining the garbage list, and explicitly breaking cycles due to your objects within the list. Note that these objects are kept alive even so by virtue of being in the garbage list, so they should be removed from garbage too. For example, after breaking cycles, do del gc.garbage[:] to empty the list. It&rsquo;s generally better to avoid the issue by not creating cycles containing objects with __del__() methods, and garbage can be examined in that case to verify that no such cycles are being created.</p></blockquote>
+<p>当一个对象显式定义了__del__方法，而且里面有循环引用，Python不会自动回收这个对象。如果这种情况没有正确处理，会造成内存泄漏。</p>
+<p>解决的办法是在__del__中手动解除循环引用，或者干脆避免这种有循环引用的写法。</p>
+<p>这个问题导致数据库连接不能释放，终于在周末晚上数据库连接爆了，丢脸啊。</p>
+<p>PS: 这次事件也再一次显示&ldquo;分层架构互不信任防雪崩策略&rdquo;的重要性。这个出事的DB是一个slave，它的max_connection和max_user_connection是一样的，而且连接超时竟然是8小时&hellip;&hellip;如果max_user_connection设小点，顶多是使用这个用户的系统挂掉，而不会是所有使用这个DB的系统都挂掉，把影响隔离起来。</p>

@@ -1,0 +1,82 @@
+---
+layout: post
+status: publish
+published: true
+title: 使用gdb调试Python进程
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40182
+wordpress_url: http://blog.lzhaohao.info/?p=40182
+date: '2011-10-12 10:08:50 +0000'
+date_gmt: '2011-10-12 02:08:50 +0000'
+categories:
+- python
+tags:
+- python
+- gdb
+- debug
+comments:
+- id: 47
+  author: 浩 胡
+  author_email: onlytiancai@gmail.com
+  author_url: ''
+  date: '2011-12-12 05:46:00 +0000'
+  date_gmt: '2011-12-12 05:46:00 +0000'
+  content: 按文中的方法还是不能在gdb里查看python调用栈，需要做如下步骤：1、在libpython.py的1221行下写上import sys 2、把libpython拷贝到/usr/local/share/gdb/python目录下，否则import
+    libpython的时候会出各种错，或者py-bt时报找不到sys
+---
+<p>有时我们会想调试一个正在运行的Python进程，或者一个Python进程的coredump。例如现在遇到一个mod_wsgi的进程僵死了，不接受请求，想看看究竟是运行到哪行Python代码呢？这时就需要祭出gdb这个神器了。</p>
+<h1>准备</h1>
+<p>1. 确认你的gdb版本是>=7，gdb从版本7开始支持对Python的debug。 (<a href="http://wiki.python.org/moin/DebuggingWithGdb">ref</a>)</p>
+<p>2.确认gdb连接的Python是所要debug的Python，否则请重新编译gdb。</p>
+<p>方法：</p>
+<pre class="brush:bash">
+$ gdb
+(gdb) python
+>import sys
+>print sys.version
+>end
+2.4.3 (#1, Sep 21 2011, 19:55:41) 
+[GCC 4.1.2 20080704 (Red Hat 4.1.2-51)]
+</pre>
+<p>在一些追求稳定的发行版（例如CentOS），Python的版本会较低，这时都会自己编译一个Python使用。而从源里安装的gdb会连接源里Python的版本。例如在CentOS 5.4，源里的Python是2.4.3，从源安装的gdb也会连接到Python 2.4.3。</p>
+<p>编译时注意，要把自己编译的Python路径加到PATH环境变量里，这样gdb configure的时候才会找到新版Python并连接。</p>
+<p>3.下载<a href="http://svn.python.org/view/*checkout*/python/trunk/Tools/gdb/libpython.py">libpython.py</a></p>
+<h1>如何Debug</h1>
+<p>假设要debug的进程号为1000</p>
+<pre class="brush:bash">
+$ gdb -p 1000
+</pre>
+<p>使用此命令即可使gdb附加到进程。</p>
+<h2>载入libpython脚本</h2>
+<li>如果你的gdb是redhat或fedora等厂商修改过的，会有&#45;&#45;python选项，使用此选项即可指定gdb启动时载入的Python扩展脚本（此脚本是扩展gdb的，不是我们需要debug的脚本）。
+<pre class="brush:bash">
+$ gdb --python /path/to/libpython.py -p 1000
+</pre>
+</li>
+<li>
+如果安装的是GNU的gdb，就需要打开gdb后手动载入libpython.py脚本</p>
+<pre class="brush:bash">
+(gdb) python
+>import sys
+>sys.path.insert(0, '/path/to/libpython.py')
+>import libpython
+>end
+(gdb)
+</pre>
+</li>
+<p>这时就可以使用py-bt命令打印当前线程的Python traceback了<br />
+<iframe src="http://pastebin.com/embed_iframe.php?i=1yp8aFHi" style="border:none;width:100%"></iframe></p>
+<p>libpython还提供很多命令，例如py-print打印变量，py-locals打印所有本地变量等等，详细可打开libpython.py查看。</p>
+<h2>一点经验</h2>
+<li>在gdb可以使用generate-core-file命令生成一个coredump文件。之后可以用gdb --core来打开coredump文件进行debug。避免一直attach住进程，可以快速重启恢复服务</li>
+<li><a href="https://fedorahosted.org/gdb-heap/">gdb-heap</a>是gdb的一个扩展。可以打印Python的内存使用情况</li>
+<p>参考资料</p>
+<li><a href="http://wiki.python.org/moin/DebuggingWithGdb">DebuggingWithGdb</a></li>
+<li><a href="https://fedoraproject.org/wiki/Features/EasierPythonDebugging">EasierPythonDebugging</a></li>
+<li><a href="http://sourceware.org/gdb/current/onlinedocs/gdb/">Debugging with gdb (gdb documentation)</a></li>

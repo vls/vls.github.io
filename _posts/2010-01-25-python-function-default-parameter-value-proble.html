@@ -1,0 +1,63 @@
+---
+layout: post
+status: publish
+published: true
+title: Python函数默认参数的一个小陷阱
+author:
+  display_name: admin
+  login: admin
+  email: nobody@gmail.com
+  url: ''
+author_login: admin
+author_email: nobody@gmail.com
+wordpress_id: 40067
+wordpress_url: http://blog.lzhaohao.info/?p=40067
+date: '2010-01-25 12:39:55 +0000'
+date_gmt: '2010-01-25 04:39:55 +0000'
+categories:
+- python
+tags:
+- python
+comments:
+- id: 10
+  author: python.cn(news, jobs)
+  author_email: en.simple.is.better@gmail.com
+  author_url: http://simple-is-better.com/
+  date: '2011-06-17 17:12:01 +0000'
+  date_gmt: '2011-06-17 09:12:01 +0000'
+  content: 已推荐至：http://simple-is-better.com/news/381
+---
+<pre class="brush:python">
+def foo(a1, args = []):
+    print "args before = %s" % (args)
+    args.insert(0, 10)
+    args.insert(0, 99999)
+    print "args = %s " % (args)
+
+def main():
+    foo('a')
+    foo('b')
+
+if __name__ == "__main__":
+    main()
+</pre>
+<p>以上小程序会有如下输出：</p>
+<pre class="brush:python">
+args before = []
+args = [99999, 10] 
+args before = [99999, 10]
+args = [99999, 10, 99999, 10] 
+</pre>
+<p>按照通常的理解，第二次调用的args应该为默认值[]，但为什么会变成上一次的结果呢？</p>
+<p>查阅Python manual有如下的说法：</p>
+<blockquote><p>
+Default parameter values are evaluated when the function definition is executed. This means that the expression is evaluated once, when the function is defined, and that that same &ldquo;pre-computed&rdquo; value is used for each call. This is especially important to understand when a default parameter is a mutable object, such as a list or a dictionary: if the function modifies the object (e.g. by appending an item to a list), the default value is in effect modified. This is generally not what was intended. A way around this is to use None as the default, and explicitly test for it in the body of the function, e.g.:
+</p></blockquote>
+<pre class="brush:python">
+def whats_on_the_telly(penguin=None):
+    if penguin is None:
+        penguin = []
+    penguin.append("property of the zoo")
+    return penguin
+</pre>
+<p>至此，原因已经很清楚了：函数中的参数默认值是一个可变的list, 函数体内修改了原来的默认值，而python会将修改后的值一直保留，并作为下次函数调用时的参数默认值</p>
